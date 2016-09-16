@@ -80,7 +80,7 @@ using std::string;
 #include <sstream>
 #include <iostream>
 
-
+#define MYLOG(format, ...)
 
 using std::stringstream;
 
@@ -99,7 +99,7 @@ typedef enum MarkerType {
 } MarkerType;
 
 typedef enum Orientation {
-	UP,LEFT,DOWN,RIGHT
+	UP, RIGHT,DOWN,LEFT
 } Orientation;
 
 typedef struct Marker {
@@ -146,7 +146,7 @@ void LoadPatt()
 	memset(PattPathName, 0, sizeof(PattPathName));
 	memset(PattName, 0, sizeof(PattName));
 	sprintf(DatName, "%s/marker.dat", PattPath);
-	printf("DatName = %s\n", DatName);
+	MYLOG("DatName = %s\n", DatName);
 	FILE* fp = fopen(DatName, "r");
 	if (fp == NULL) {
 		ARLOGe("marker can't read!\n");
@@ -155,7 +155,7 @@ void LoadPatt()
 	}
     for (int i=1; i<=PATT_NUM; i++) {
         fscanf(fp,"%s",PattName);
-		printf("PattName = %s\n", PattName);
+		MYLOG("PattName = %s\n", PattName);
 		sprintf(PattPathName, "%s/%s", PATT_PATH, PattName);
         if( (patt_ids[i]=arPattLoad(arPattHandle, PattPathName)) < 0 ) {
             sprintf(PattName, "pattern[%d] load error !!\n",i);
@@ -218,7 +218,7 @@ void mainLoop2()
 			argDrawImageHalf(arHandle->labelInfo.bwImage);
 		}
 	}
-	//  printf("xsize = %d, ysize = %d\n",arHandle->xsize,arHandle->ysize);
+	//  MYLOG("xsize = %d, ysize = %d\n",arHandle->xsize,arHandle->ysize);
 	/* detect the markers in the video frame */
 	if (arDetectMarker(arHandle, dataPtr) < 0) {
 		cleanup();
@@ -244,10 +244,10 @@ void mainLoop2()
 	// resetGL();
 	rapidjson::Document doc;
 	doc.SetObject();
-	//printf("begin!\n");
+	//MYLOG("begin!\n");
 	int num = 0;
-	//printf("marker num = %d\n", markerNum);
-	//printf("patt_num = %d\n", PATT_NUM);
+	//MYLOG("marker num = %d\n", markerNum);
+	//MYLOG("patt_num = %d\n", PATT_NUM);
 	for (int j = 0; j<markerNum; j++)
 	{
 		for (int i = 1; i <= PATT_NUM; i++) {
@@ -256,7 +256,7 @@ void mainLoop2()
 				//  if( k == -1 ) {
 				if (markerInfo[j].cf >= 0.8) {
 					num++;
-					//           printf("line = %d\n",arHandle->markerInfo2[j].coord_num/4);
+					//           MYLOG("line = %d\n",arHandle->markerInfo2[j].coord_num/4);
 					err = arGetTransMatSquare(ar3DHandle, &(markerInfo[j]), patt_width, patt_trans);
 					sprintf(errValue, "err = %f", err);
 					glColor3f(0.0f, 1.0f, 0.0f);
@@ -268,8 +268,8 @@ void mainLoop2()
 					draw(patt_trans);
 
 					/*work out the coordinate&&orientation of the marker on the planar*/
-					//printf("%d\t%d\t%d\n", (int)(patt_trans[0][3]), (int)(patt_trans[1][3]), (int)(patt_trans[2][3]));
-					//printf("%f\t%f\n", patt_trans[0][3] / patt_trans[2][3], patt_trans[1][3] / patt_trans[2][3]);
+					//MYLOG("%d\t%d\t%d\n", (int)(patt_trans[0][3]), (int)(patt_trans[1][3]), (int)(patt_trans[2][3]));
+					//MYLOG("%f\t%f\n", patt_trans[0][3] / patt_trans[2][3], patt_trans[1][3] / patt_trans[2][3]);
 
 					if (patt_trans[0][3] > 0) x = (int)(patt_trans[0][3] / patt_trans[2][3] / 0.03) + 1;
 					else x = (int)(patt_trans[0][3] / patt_trans[2][3] / 0.03) - 1;
@@ -277,14 +277,14 @@ void mainLoop2()
 					else y = (int)(patt_trans[1][3] / patt_trans[2][3] / 0.048) - 1;
 					x = x + PLANAR_ROWS / 2;
 					y = y + PLANAR_COLS / 2;
-					//printf("x = %d, y = %d\n", x, y);
+					//MYLOG("x = %d, y = %d\n", x, y);
 
 					if (x >= PLANAR_ROWS || x < 0) {
-						printf("x = %d out of range!\n", x);
+						MYLOG("x = %d out of range!\n", x);
 						continue;
 					}
 					if (y >= PLANAR_COLS || y < 0) {
-						printf("y = %d out of range!\n", y);
+						MYLOG("y = %d out of range!\n", y);
 						continue;
 					}
 					if (patt_ids[i] >= MarkerType::NUM) type = MarkerType::NONE;
@@ -292,21 +292,21 @@ void mainLoop2()
 					orientation = computeOrientation(patt_trans);
 
 					/*fill the marker into the cell && make it be reconized robust*/
-					//			printf("type = %d\n", (int)type);
-					//			printf("markerType[x][y] = %d\n", markerType[x][y]);
+					//			MYLOG("type = %d\n", (int)type);
+					//			MYLOG("markerType[x][y] = %d\n", markerType[x][y]);
 					if (type == NONE) continue;
 					if (markerType[x][y] == type && markerOrientation[x][y] == orientation)
 					{
 						liveCount[x][y] |= 0x1;
 						//				markerOrientation[x][y] = orientation;
-						//				printf("entry1\n");
+						//				MYLOG("entry1\n");
 					}
 					else if (markerType[x][y] == NONE)
 					{
 						markerOrientation[x][y] = orientation;
 						markerType[x][y] = type;
 						liveCount[x][y] |= 0x1;
-						//				printf("entry2");
+						//				MYLOG("entry2");
 					}
 
 				}
@@ -315,8 +315,8 @@ void mainLoop2()
 		}
 		//draw(patt_trans);
 	}
-	//printf("num = %d\n", num);
-	//printf("end!\n");
+	//MYLOG("num = %d\n", num);
+	//MYLOG("end!\n");
 	/* live count increase*/
 	for (int i = 0; i < PLANAR_ROWS; i++)
 		for (int j = 0; j < PLANAR_COLS; j++)
@@ -339,7 +339,7 @@ int main(int argc, char *argv[])
 	client.Connect("127.0.0.1", "56025");*/
 
 	//server socket
-	server.SetAddr("192.168.1.2","56025");
+	server.SetAddr("192.168.1.3","56025");
 	
     argSetDispFunc( mainLoop, 1 );
 	argSetKeyFunc( keyFunc );
@@ -356,7 +356,7 @@ int main(int argc, char *argv[])
 static void keyFunc( unsigned char key, int x, int y )
 {
     int   value;
-
+	//system("pause");
     switch (key) {
 		case 0x1b:
 			cleanup();
@@ -369,6 +369,7 @@ static void keyFunc( unsigned char key, int x, int y )
         	if( value < 0 ) value = 0;
         	arSetLabelingThresh( arHandle, value );
         	ARLOG("thresh = %d\n", value);
+			//system("pause");
         	break;
 		case '2':
 		case '+':
@@ -377,6 +378,7 @@ static void keyFunc( unsigned char key, int x, int y )
         	if( value > 255 ) value = 255;
         	arSetLabelingThresh( arHandle, value );
         	ARLOG("thresh = %d\n", value);
+			//system("pause");
         	break;
 		case 'd':
 		case 'D':
@@ -494,18 +496,18 @@ void transferToJson(rapidjson::Document& doc,int markernum,Marker* markers)
 		
 		mkArray.PushBack(mk, allocator);
 
-		printf("%d\t%d\n", markers[i].x, markers[i].y);
+		MYLOG("%d\t%d\n", markers[i].x, markers[i].y);
 		switch (markers[i].orientation)
 		{
-		case UP:printf("up\n"); break;
-		case DOWN:printf("down\n"); break;
-		case LEFT:printf("left\n"); break;
-		case RIGHT:printf("right\n"); break;
+		case UP:MYLOG("up\n"); break;
+		case DOWN:MYLOG("down\n"); break;
+		case LEFT:MYLOG("left\n"); break;
+		case RIGHT:MYLOG("right\n"); break;
 		default:
 			break;
 		}
 	}
-	printf("marker number = %d\n", markernum);
+	MYLOG("marker number = %d\n", markernum);
 	doc.AddMember("entry", mkArray, allocator);
 }
 
@@ -519,7 +521,7 @@ string printJson(rapidjson::Document& doc)
 
 	const char* jstr = strbuf.GetString();
 	ss << jstr;
-	//printf("%s\n", jstr);
+	//MYLOG("%s\n", jstr);
 	return ss.str();
 }
 
@@ -593,7 +595,7 @@ static void mainLoop(void)
             argDrawImageHalf( arHandle->labelInfo.bwImage );
         }
     }
-  //  printf("xsize = %d, ysize = %d\n",arHandle->xsize,arHandle->ysize);
+  //  MYLOG("xsize = %d, ysize = %d\n",arHandle->xsize,arHandle->ysize);
     /* detect the markers in the video frame */
     if( arDetectMarker(arHandle, dataPtr) < 0 ) {
         cleanup();
@@ -619,7 +621,7 @@ static void mainLoop(void)
    // resetGL();
 	rapidjson::Document doc;
 	doc.SetObject();
-	//printf("begin!\n");
+	//MYLOG("begin!\n");
 	int num = 0;
     for(int j = 0; j<markerNum ; j++)
     {
@@ -629,20 +631,20 @@ static void mainLoop(void)
               //  if( k == -1 ) {
                     if (markerInfo[j].cf >= 0.8) {
 						num++;
-             //           printf("line = %d\n",arHandle->markerInfo2[j].coord_num/4);
+             //           MYLOG("line = %d\n",arHandle->markerInfo2[j].coord_num/4);
                         err = arGetTransMatSquare(ar3DHandle, &(markerInfo[j]), patt_width, patt_trans);
                         sprintf(errValue, "err = %f", err);
                         glColor3f(0.0f, 1.0f, 0.0f);
                         argDrawStringsByIdealPos(fps, 10, ysize-30);
                         argDrawStringsByIdealPos(errValue, 10, ysize-60);
-                        ARLOG("err = %f\n", err);
+             //           ARLOG("err = %f\n", err);
                         
                         
                         draw(patt_trans);
 
 						/*work out the coordinate&&orientation of the marker on the planar*/
-                        //printf("%d\t%d\t%d\n",(int)(patt_trans[0][3]),(int)(patt_trans[1][3]),(int)(patt_trans[2][3]));
-						//printf("%f\t%f\n", patt_trans[0][3] / patt_trans[2][3], patt_trans[1][3] / patt_trans[2][3]);
+                        //MYLOG("%d\t%d\t%d\n",(int)(patt_trans[0][3]),(int)(patt_trans[1][3]),(int)(patt_trans[2][3]));
+						//MYLOG("%f\t%f\n", patt_trans[0][3] / patt_trans[2][3], patt_trans[1][3] / patt_trans[2][3]);
 
 						static double	xlu = -0.45099,	ylu = -0.30329,
 										xld = -0.44527,	yld = 0.30084,
@@ -661,19 +663,19 @@ static void mainLoop(void)
 					//	accx += x0;
 					//	accy += y0;
 					//	xnum += 1;
-					//	printf("xmean = %lf\n", accx/xnum);
-					//	printf("ymean = %lf\n", accy / xnum);
-						//printf("x0 = %lf, y0 = %lf\n", x0, y0);
+					//	MYLOG("xmean = %lf\n", accx/xnum);
+					//	MYLOG("ymean = %lf\n", accy / xnum);
+						//MYLOG("x0 = %lf, y0 = %lf\n", x0, y0);
 						//xu = (xru - x0) / (xru - xlu) * 31;
 						//xd = (xrd - x0) / (xrd - xld) * 31;
-						//printf("xu = %lf, xd = %lf\n", xu, xd);
+						//MYLOG("xu = %lf, xd = %lf\n", xu, xd);
 						//x = (int)((yrd - y0) / (yrd - yru)*xd + (y0 - yru) / (yrd - yru)*xu + 0.5);
 						x = (int)((x0 - (xlu)) / ((xru) - (xlu)) * 31 + 0.5 );
 						len = x / 31.0*lenRight + (31.0 - x) / 31.0*lenLeft;
 						
 						yu = yrd - len;
-						//printf("yu = %lf\n",yu);
-						printf("!!!!!! =  %lf\n", (x0 - (xlu)) / ((xru) - (xlu)));
+						//MYLOG("yu = %lf\n",yu);
+						MYLOG("!!!!!! =  %lf\n", (x0 - (xlu)) / ((xru) - (xlu)));
 
 						y = (int)((y0 - yu) / len*15.0 + 0.5);
 
@@ -686,14 +688,14 @@ static void mainLoop(void)
 						y = y + PLANAR_COLS / 2;
 						*/
 
-						//printf("x = %d, y = %d\n", x, y);
+						//MYLOG("x = %d, y = %d\n", x, y);
 
 						if (x >= PLANAR_ROWS || x < 0) {
-							printf("x = %d out of range!\n",x);
+							MYLOG("x = %d out of range!\n",x);
 							continue;
 						}
 						if (y >= PLANAR_COLS || y < 0) {
-							printf("y = %d out of range!\n",y);
+							MYLOG("y = %d out of range!\n",y);
 							continue;
 						}
 						if (patt_ids[i] >= MarkerType::NUM) type = MarkerType::NONE;
@@ -701,21 +703,21 @@ static void mainLoop(void)
 						orientation = computeOrientation(patt_trans);
 
 						/*fill the marker into the cell && make it be reconized robust*/
-			//			printf("type = %d\n", (int)type);
-			//			printf("markerType[x][y] = %d\n", markerType[x][y]);
+			//			MYLOG("type = %d\n", (int)type);
+			//			MYLOG("markerType[x][y] = %d\n", markerType[x][y]);
 						if (type == NONE) continue;
 						if (markerType[x][y] == type && markerOrientation[x][y] == orientation)
 						{
 							liveCount[x][y] |= 0x1;
 			//				markerOrientation[x][y] = orientation;
-			//				printf("entry1\n");
+			//				MYLOG("entry1\n");
 						}
 						else if (markerType[x][y] == NONE)
 						{
 							markerOrientation[x][y] = orientation;
 							markerType[x][y] = type;
 							liveCount[x][y] |= 0x1;
-			//				printf("entry2");
+			//				MYLOG("entry2");
 						}
 
                     }
@@ -724,8 +726,8 @@ static void mainLoop(void)
         }
         //draw(patt_trans);
     }
-	//printf("num = %d\n",num);
-	//printf("end!\n");
+	//MYLOG("num = %d\n",num);
+	//MYLOG("end!\n");
 	/* live count increase*/
 	for (int i = 0; i < PLANAR_ROWS; i++)
 		for (int j = 0; j < PLANAR_COLS; j++)
@@ -740,7 +742,7 @@ static void mainLoop(void)
 		for (int j = 0; j < PLANAR_COLS; j++)
 		{
 			if (markerType[i][j] == NONE) continue;
-			//printf("Not NONE!\n");
+			//MYLOG("Not NONE!\n");
 
 			markers[recognizedMarkerNum].x = i;
 			markers[recognizedMarkerNum].y = j;
@@ -749,24 +751,24 @@ static void mainLoop(void)
 			/*
 			switch (markers[recognizedMarkerNum].orientation)
 			{
-			case Orientation::UP: printf("UP\n"); break;
-			case Orientation::LEFT: printf("LEFT\n"); break;
-			case Orientation::RIGHT: printf("RIGHT\n"); break;
-			case Orientation::DOWN: printf("DOWN\n"); break;
-			default: printf("Orientation Err!\n"); break;
+			case Orientation::UP: MYLOG("UP\n"); break;
+			case Orientation::LEFT: MYLOG("LEFT\n"); break;
+			case Orientation::RIGHT: MYLOG("RIGHT\n"); break;
+			case Orientation::DOWN: MYLOG("DOWN\n"); break;
+			default: MYLOG("Orientation Err!\n"); break;
 			}
 			switch (markers[recognizedMarkerNum].type)
 			{
-			case TAXI:printf("taxi\n"); break;
-			case BUS:printf("bus\n"); break;
-			case TCROSS:printf("tcross\n"); break;
-			default: printf("Marker type haven't been imported!\n"); break;
+			case TAXI:MYLOG("taxi\n"); break;
+			case BUS:MYLOG("bus\n"); break;
+			case TCROSS:MYLOG("tcross\n"); break;
+			default: MYLOG("Marker type haven't been imported!\n"); break;
 			}
 			*/
 			recognizedMarkerNum++;
-			//printf("%d %d\n", i, j);
+			//MYLOG("%d %d\n", i, j);
 		}
-	//printf("reconized markers = %d\n", recognizedMarkerNum);
+	//MYLOG("reconized markers = %d\n", recognizedMarkerNum);
 	//if (recognizedMarkerNum == 3) system("pause");
 	transferToJson(doc, recognizedMarkerNum, markers);
 	static string oldjson;

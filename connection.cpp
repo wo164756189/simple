@@ -113,9 +113,9 @@ int Server::Send(string buf)
 	for (vector<SOCKET>::iterator it = clientSockets.begin(); it != clientSockets.end(); )//iterate clients and send
 	{
 		LOG("sending...\n");
-		printf("sending json....");
+		//printf("sending json....");
 		int iResult = send(*it, &buf[0], (int)(buf.size() * sizeof(char)), 0);
-		printf("\njson sent\n");
+		//printf("\njson sent\n");
 		if (iResult == SOCKET_ERROR)
 		{//if error, close socket and delete
 			LOG("send failed: %d\n", WSAGetLastError());
