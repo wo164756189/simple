@@ -88,14 +88,14 @@ using std::stringstream;
 #define             VPARA_NAME       "Data/cameraSetting-%08x%08x.dat"
 #define             PATT_NAME        "Data/hiro.patt"
 #define             PATT_PATH        "Data/mydata"
-#define             PATT_NUM         19
+#define             PATT_NUM         28
 #define				MAX_MARKER_NUM	100
 #define				PLANAR_ROWS 32
 #define				PLANAR_COLS 16
 
 
 typedef enum MarkerType {
-	NONE, BLOCK01, BLOCK02, BLOCK04,BLOCK07,BLOCK08,BLOCK11,BLOCK12,BLOCK13,BLOCK14,BLOCK15,CAMERA,LCROSS,TCROSS,XCROSS,LIGHT,LIGHTLCROSS,LIGHTTCROSS,LIGHTXCROSS,STATION,NUM
+	NONE, BLOCK01, BLOCK02, BLOCK03, BLOCK04, BLOCK05, BLOCK06, BLOCK07, BLOCK08, BLOCK09, BLOCK11, BLOCK12, BLOCK13, BLOCK14, BLOCK15, BLOCK16, BLOCK17, BLOCK18, BLOCK19, BLOCK20, LCROSS, TCROSS, XCROSS, LIGHTLCROSS, LIGHTTCROSS, LIGHTXCROSS, STATION, PARK, ROTATE, NUM
 } MarkerType;
 
 typedef enum Orientation {
@@ -126,6 +126,7 @@ ARParamLT          *gCparamLT = NULL;
 
 //client socket
 Server server;
+bool rotateFlag = true;
 
 static void   init(int argc, char *argv[]);
 static void   keyFunc( unsigned char key, int x, int y );
@@ -180,7 +181,7 @@ int main(int argc, char *argv[])
 	
     argSetDispFunc( mainLoop, 1 );
 	argSetKeyFunc( keyFunc );
-	arSetLabelingThresh(arHandle,125);
+	arSetLabelingThresh(arHandle,85);
 	count = 0;
     fps[0] = '\0';
 	arUtilTimerReset();
@@ -277,6 +278,8 @@ void transferToJson(rapidjson::Document& doc,int markernum,Marker* markers)
 	blockSize.AddMember("height", height, allocator);
 	doc.AddMember("blockSize", blockSize, allocator);
 
+	doc.AddMember("rotate", rotateFlag, allocator);
+
 	rapidjson::Value mkArray(rapidjson::kArrayType);
 	for (int i = 0; i < markernum; i++)
 	{
@@ -297,31 +300,31 @@ void transferToJson(rapidjson::Document& doc,int markernum,Marker* markers)
 		{
 		case BLOCK01:mk.AddMember("id", "1", allocator); break;
 		case BLOCK02:mk.AddMember("id", "2", allocator); break;
-		case BLOCK04:mk.AddMember("id", "4", allocator); break;
-		case BLOCK07:mk.AddMember("id", "7", allocator); break;
-		case BLOCK08:mk.AddMember("id", "8", allocator); break;
-		case BLOCK11:mk.AddMember("id", "11", allocator); break;
-		case BLOCK12:mk.AddMember("id", "12", allocator); break;
-		case BLOCK13:mk.AddMember("id", "13", allocator); break;
-		case BLOCK14:mk.AddMember("id", "14", allocator); break;
-		case BLOCK15:mk.AddMember("id", "15", allocator); break;
-
-
-						/*
+		case BLOCK03:mk.AddMember("id", "3", allocator); break;
 		case BLOCK04:mk.AddMember("id", "4", allocator); break;
 		case BLOCK05:mk.AddMember("id", "5", allocator); break;
 		case BLOCK06:mk.AddMember("id", "6", allocator); break;
 		case BLOCK07:mk.AddMember("id", "7", allocator); break;
 		case BLOCK08:mk.AddMember("id", "8", allocator); break;
 		case BLOCK09:mk.AddMember("id", "9", allocator); break;
-		case BLOCK10:mk.AddMember("id", "10", allocator); break;
-		*/
+		case BLOCK11:mk.AddMember("id", "11", allocator); break;
+		case BLOCK12:mk.AddMember("id", "12", allocator); break;
+		case BLOCK13:mk.AddMember("id", "13", allocator); break;
+		case BLOCK14:mk.AddMember("id", "14", allocator); break;
+		case BLOCK15:mk.AddMember("id", "15", allocator); break;
+		case BLOCK16:mk.AddMember("id", "16", allocator); break;
+		case BLOCK17:mk.AddMember("id", "17", allocator); break;
+		case BLOCK18:mk.AddMember("id", "18", allocator); break;
+		case BLOCK19:mk.AddMember("id", "19", allocator); break;
+		case BLOCK20:mk.AddMember("id", "20", allocator); break;
 		case TCROSS:mk.AddMember("id", "tcross", allocator); break;
 		case LCROSS:mk.AddMember("id", "lcross", allocator); break;
 		case XCROSS:mk.AddMember("id", "xcross", allocator); break;
 		case LIGHTTCROSS:mk.AddMember("id", "tcross_greenlight", allocator); break;
 		case LIGHTLCROSS:mk.AddMember("id", "lcross_greenlight", allocator); break;
 		case LIGHTXCROSS:mk.AddMember("id", "xcross_greenlight", allocator); break;
+		case STATION:mk.AddMember("id", "station", allocator); break;
+		case PARK:mk.AddMember("id", "park", allocator); break;
 		default:
 			mk.AddMember("id", "4", allocator); break;
 			break;
@@ -378,7 +381,6 @@ Orientation computeOrientation(ARdouble trans[3][4])
 	else if (resx[0] < 0 && abs(resx[0])-abs(resx[1]) >= 0) return Orientation::DOWN;
 	else return Orientation::RIGHT;
 	
-	//if (resx[0] >= 0 && resx[1] >=0)
 }
 
 static void mainLoop(void)
@@ -401,6 +403,7 @@ static void mainLoop(void)
     int             j;
 	Marker				markers[MAX_MARKER_NUM];
 	int recognizedMarkerNum = 0;
+	static long int rotatemarker = 0;
 
 	/*first visit*/
 	if (initFlag == 1) {
@@ -467,7 +470,7 @@ static void mainLoop(void)
            // ARLOG("ID=%d, CF = %f\n", markerInfo[j].id, markerInfo[j].cf);
             if( patt_ids[i] == markerInfo[j].id ) {
               //  if( k == -1 ) {
-                    if (markerInfo[j].cf >= 0.83) {
+                    if (markerInfo[j].cf >= 0.7) {
 						num++;
              //           MYLOG("line = %d\n",arHandle->markerInfo2[j].coord_num/4);
                         err = arGetTransMatSquare(ar3DHandle, &(markerInfo[j]), patt_width, patt_trans);
@@ -478,8 +481,7 @@ static void mainLoop(void)
              //           ARLOG("err = %f\n", err);
                         
                         
-                        draw(patt_trans);
-
+						
 						/*work out the coordinate&&orientation of the marker on the planar*/
                         //MYLOG("%d\t%d\t%d\n",(int)(patt_trans[0][3]),(int)(patt_trans[1][3]),(int)(patt_trans[2][3]));
 						//MYLOG("%f\t%f\n", patt_trans[0][3] / patt_trans[2][3], patt_trans[1][3] / patt_trans[2][3]);
@@ -496,25 +498,36 @@ static void mainLoop(void)
 
 						static double	len;
 						static double deltaxl = 0.026, deltaxr = 0.034;
-						static double accx = 0, xnum = 0, accy = 0;
+						static double accx = 0, xnum = 0, accy = 0, accz = 0;
 						x0 = patt_trans[0][3] / patt_trans[2][3];
 						y0 = patt_trans[1][3] / patt_trans[2][3];
+						/*
 						accx += x0;
 						accy += y0;
+						accz += patt_trans[2][3];
 						xnum += 1;
-						//printf("xmean = %lf\n", accx/xnum);
+						printf("zmean = %lf\n", accz/xnum);
+						*/
+						
+
 						//printf("ymean = %lf\n", accy / xnum);
 						//MYLOG("x0 = %lf, y0 = %lf\n", x0, y0);
 						//xu = (xru - x0) / (xru - xlu) * 31;
 						//xd = (xrd - x0) / (xrd - xld) * 31;
 						//MYLOG("xu = %lf, xd = %lf\n", xu, xd);
 						//x = (int)((yrd - y0) / (yrd - yru)*xd + (y0 - yru) / (yrd - yru)*xu + 0.5);
+
+						//out of the plane
+
+						if (x0 < xlu - (xru - xlu) / 19.0 / 2.0)	continue;
+						if (patt_trans[2][3] <= 2600.0 || patt_trans[2][3] >= 2900.0) continue;
 						x = (int)((x0 - (xlu)) / ((xru) - (xlu)) * 19 + 0.5 );
 						len = x / 19.0*lenRight + (19.0 - x) / 19.0*lenLeft;
 						x = x + 6;
 						yu = yrd - len;
 						//MYLOG("yu = %lf\n",yu);
 						MYLOG("!!!!!! =  %lf\n", (x0 - (xlu)) / ((xru) - (xlu)));
+						//printf("x =  %d\n", x);
 
 						y = (int)((y0 - yu) / len*15.0 + 0.5);
 
@@ -545,6 +558,11 @@ static void mainLoop(void)
 			//			MYLOG("type = %d\n", (int)type);
 			//			MYLOG("markerType[x][y] = %d\n", markerType[x][y]);
 						if (type == NONE) continue;
+						if (type == ROTATE)
+						{
+							rotatemarker |= 0x1;
+							continue;
+						}
 						if (markerType[x][y] == type && markerOrientation[x][y] == orientation)
 						{
 							liveCount[x][y] |= 0x1;
@@ -558,6 +576,7 @@ static void mainLoop(void)
 							liveCount[x][y] |= 0x1;
 			//				MYLOG("entry2");
 						}
+						draw(patt_trans);
 
                     }
            //     } //else if( markerInfo[j].cf > markerInfo[k].cf ) k = j;
@@ -575,6 +594,11 @@ static void mainLoop(void)
 			liveCount[i][j] &= 0xffffff ;
 			if (liveCount[i][j] == 0) markerType[i][j] = NONE;
 		}
+
+	rotatemarker <<= 1;
+	rotatemarker &= 0xffffff;
+	if (rotatemarker == 0) rotateFlag = false;
+	else rotateFlag = true;
 
 	/*record the reconized markers*/
 	for (int i = 0; i < PLANAR_ROWS; i++)
