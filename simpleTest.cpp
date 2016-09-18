@@ -56,6 +56,8 @@
 #define _WINSOCKAPI_
 #  include <windows.h>
 #endif
+
+#include <chrono>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -77,12 +79,14 @@ using std::string;
 #include <rapidjson/stringbuffer.h>
 #include <vector>
 #include "connection.h"
+#include "car.h"
 #include <sstream>
 #include <iostream>
 
 #define MYLOG(format, ...)
 
 using std::stringstream;
+using namespace std::chrono;
 
 #define             CPARA_NAME       "Data/camera_para.dat"
 #define             VPARA_NAME       "Data/cameraSetting-%08x%08x.dat"
@@ -126,7 +130,10 @@ ARParamLT          *gCparamLT = NULL;
 
 //client socket
 Server server;
-bool rotateFlag = true;
+bool rotateFlag = false;
+//car
+CarGenerator carGenerator;
+milliseconds preMs, curMs;
 
 static void   init(int argc, char *argv[]);
 static void   keyFunc( unsigned char key, int x, int y );
@@ -179,6 +186,7 @@ int main(int argc, char *argv[])
 	//server socket
 	server.SetAddr("192.168.1.3","56025");
 	
+	preMs = duration_cast<milliseconds>(system_clock::now().time_since_epoch());
     argSetDispFunc( mainLoop, 1 );
 	argSetKeyFunc( keyFunc );
 	arSetLabelingThresh(arHandle,85);
@@ -268,6 +276,9 @@ static void keyFunc( unsigned char key, int x, int y )
 
 void transferToJson(rapidjson::Document& doc,int markernum,Marker* markers)
 {
+	curMs = duration_cast<milliseconds>(system_clock::now().time_since_epoch());
+	std::chrono::duration<double, std::milli> fp_ms = curMs - preMs;
+	carGenerator.crosses.clear();
 	//block size
 	rapidjson::Document::AllocatorType& allocator = doc.GetAllocator();
 	rapidjson::Value width(32);
@@ -317,12 +328,72 @@ void transferToJson(rapidjson::Document& doc,int markernum,Marker* markers)
 		case BLOCK18:mk.AddMember("id", "18", allocator); break;
 		case BLOCK19:mk.AddMember("id", "19", allocator); break;
 		case BLOCK20:mk.AddMember("id", "20", allocator); break;
-		case TCROSS:mk.AddMember("id", "tcross", allocator); break;
-		case LCROSS:mk.AddMember("id", "lcross", allocator); break;
-		case XCROSS:mk.AddMember("id", "xcross", allocator); break;
-		case LIGHTTCROSS:mk.AddMember("id", "tcross_greenlight", allocator); break;
-		case LIGHTLCROSS:mk.AddMember("id", "lcross_greenlight", allocator); break;
-		case LIGHTXCROSS:mk.AddMember("id", "xcross_greenlight", allocator); break;
+		case TCROSS: 
+		{
+			mk.AddMember("id", "tcross", allocator);
+			Cross cross;
+			cross.position[0] = markers[i].x;
+			cross.position[1] = markers[i].y;
+			cross.orientation = markers[i].orientation + 1;
+			cross.type = "tcross";
+			carGenerator.crosses.push_back(cross);
+			break;
+		}
+		case LCROSS:
+		{
+			mk.AddMember("id", "lcross", allocator); 
+			Cross cross;
+			cross.position[0] = markers[i].x;
+			cross.position[1] = markers[i].y;
+			cross.orientation = markers[i].orientation + 1;
+			cross.type = "lcross";
+			carGenerator.crosses.push_back(cross);
+			break;
+		}
+		case XCROSS:
+		{
+			mk.AddMember("id", "xcross", allocator); 
+			Cross cross;
+			cross.position[0] = markers[i].x;
+			cross.position[1] = markers[i].y;
+			cross.orientation = markers[i].orientation + 1;
+			cross.type = "xcross";
+			carGenerator.crosses.push_back(cross);
+			break;
+		}
+		case LIGHTTCROSS:
+		{
+			mk.AddMember("id", "tcross_greenlight", allocator);
+			Cross cross;
+			cross.position[0] = markers[i].x;
+			cross.position[1] = markers[i].y;
+			cross.orientation = markers[i].orientation + 1;
+			cross.type = "tcross";
+			carGenerator.crosses.push_back(cross);
+			break;
+		}
+		case LIGHTLCROSS:
+		{
+			mk.AddMember("id", "lcross_greenlight", allocator); 
+			Cross cross;
+			cross.position[0] = markers[i].x;
+			cross.position[1] = markers[i].y;
+			cross.orientation = markers[i].orientation + 1;
+			cross.type = "lcross";
+			carGenerator.crosses.push_back(cross);
+			break;
+		}
+		case LIGHTXCROSS:
+		{
+			mk.AddMember("id", "xcross_greenlight", allocator);
+			Cross cross;
+			cross.position[0] = markers[i].x;
+			cross.position[1] = markers[i].y;
+			cross.orientation = markers[i].orientation + 1;
+			cross.type = "xcross";
+			carGenerator.crosses.push_back(cross);
+			break;
+		}
 		case STATION:mk.AddMember("id", "station", allocator); break;
 		case PARK:mk.AddMember("id", "park", allocator); break;
 		default:
@@ -350,6 +421,12 @@ void transferToJson(rapidjson::Document& doc,int markernum,Marker* markers)
 	}
 	MYLOG("marker number = %d\n", markernum);
 	doc.AddMember("entry", mkArray, allocator);
+
+	//cars
+	rapidjson::Value cars(rapidjson::kArrayType);
+	if(fp_ms >= std::chrono::duration<double, std::milli>(20000.0f))
+		carGenerator.GenerateCars(cars, allocator);
+	doc.AddMember("cars", cars, allocator);
 }
 
 string printJson(rapidjson::Document& doc)
