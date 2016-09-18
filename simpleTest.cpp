@@ -368,7 +368,7 @@ void transferToJson(rapidjson::Document& doc,int markernum,Marker* markers)
 			cross.position[0] = markers[i].x;
 			cross.position[1] = markers[i].y;
 			cross.orientation = markers[i].orientation + 1;
-			cross.type = "tcross";
+			cross.type = "tcross_greenlight";
 			carGenerator.crosses.push_back(cross);
 			break;
 		}
@@ -379,7 +379,7 @@ void transferToJson(rapidjson::Document& doc,int markernum,Marker* markers)
 			cross.position[0] = markers[i].x;
 			cross.position[1] = markers[i].y;
 			cross.orientation = markers[i].orientation + 1;
-			cross.type = "lcross";
+			cross.type = "lcross_greenlight";
 			carGenerator.crosses.push_back(cross);
 			break;
 		}
@@ -390,7 +390,7 @@ void transferToJson(rapidjson::Document& doc,int markernum,Marker* markers)
 			cross.position[0] = markers[i].x;
 			cross.position[1] = markers[i].y;
 			cross.orientation = markers[i].orientation + 1;
-			cross.type = "xcross";
+			cross.type = "xcross_greenlight";
 			carGenerator.crosses.push_back(cross);
 			break;
 		}
