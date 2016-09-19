@@ -424,12 +424,8 @@ void transferToJson(rapidjson::Document& doc,int markernum,Marker* markers)
 
 	//cars
 	rapidjson::Value cars(rapidjson::kArrayType);
-	if (fp_ms >= std::chrono::duration<double, std::milli>(2000.0f))
-	{
-		printf("gen car\n");
+	if(fp_ms >= std::chrono::duration<double, std::milli>(20000.0f))
 		carGenerator.GenerateCars(cars, allocator);
-		preMs = curMs;
-	}
 	doc.AddMember("cars", cars, allocator);
 }
 
