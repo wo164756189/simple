@@ -43,8 +43,6 @@ public :
 			//direction (random)
 			rapidjson::Value direction(crosses[i].orientation);
 			car.AddMember("direction", direction, allocator);
-			//crossType
-			car.AddMember("crossType", crosses[i].type, allocator);
 			//car mesh (random)
 			rapidjson::Value meshID(1);
 			car.AddMember("mesh", meshID, allocator);
