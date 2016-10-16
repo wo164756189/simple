@@ -131,9 +131,6 @@ ARParamLT          *gCparamLT = NULL;
 //client socket
 Server server;
 bool rotateFlag = false;
-//car
-CarGenerator carGenerator;
-milliseconds preMs, curMs;
 
 static void   init(int argc, char *argv[]);
 static void   keyFunc( unsigned char key, int x, int y );
@@ -184,10 +181,14 @@ int main(int argc, char *argv[])
 	client.Connect("127.0.0.1", "56025");*/
 
 	//server socket
-	server.SetAddr("192.168.1.3","56025");
+	//server.SetAddr("192.168.1.3","56025");
+	carServer.SetAddr("127.0.0.1", "56025");
+	carGenerator.InitCrosses();
 	
 	preMs = duration_cast<milliseconds>(system_clock::now().time_since_epoch());
-    argSetDispFunc( mainLoop, 1 );
+	preMsFrame = preMs;
+	argSetDispFunc(testLoop, 1);
+	//argSetDispFunc(mainLoop, 1);
 	argSetKeyFunc( keyFunc );
 	arSetLabelingThresh(arHandle,85);
 	count = 0;
@@ -368,7 +369,7 @@ void transferToJson(rapidjson::Document& doc,int markernum,Marker* markers)
 			cross.position[0] = markers[i].x;
 			cross.position[1] = markers[i].y;
 			cross.orientation = markers[i].orientation + 1;
-			cross.type = "tcross";
+			cross.type = "tcross_greenlight";
 			carGenerator.crosses.push_back(cross);
 			break;
 		}
@@ -379,7 +380,7 @@ void transferToJson(rapidjson::Document& doc,int markernum,Marker* markers)
 			cross.position[0] = markers[i].x;
 			cross.position[1] = markers[i].y;
 			cross.orientation = markers[i].orientation + 1;
-			cross.type = "lcross";
+			cross.type = "lcross_greenlight";
 			carGenerator.crosses.push_back(cross);
 			break;
 		}
@@ -390,7 +391,7 @@ void transferToJson(rapidjson::Document& doc,int markernum,Marker* markers)
 			cross.position[0] = markers[i].x;
 			cross.position[1] = markers[i].y;
 			cross.orientation = markers[i].orientation + 1;
-			cross.type = "xcross";
+			cross.type = "xcross_greenlight";
 			carGenerator.crosses.push_back(cross);
 			break;
 		}
@@ -424,8 +425,12 @@ void transferToJson(rapidjson::Document& doc,int markernum,Marker* markers)
 
 	//cars
 	rapidjson::Value cars(rapidjson::kArrayType);
-	if(fp_ms >= std::chrono::duration<double, std::milli>(20000.0f))
+	if (fp_ms >= std::chrono::duration<double, std::milli>(2000.0f))
+	{
+		printf("car gen\n");
 		carGenerator.GenerateCars(cars, allocator);
+		preMs = curMs;
+	}
 	doc.AddMember("cars", cars, allocator);
 }
 
