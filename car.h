@@ -54,8 +54,15 @@ public :
 		cross1.type = "tcross_greenlight";
 		cross1.orientation = 3;
 
+		Cross cross2;
+		cross2.position[0] = 24;
+		cross2.position[1] = 2;
+		cross2.type = "lcross_greenlight";
+		cross2.orientation = 3;
+
 		crosses.push_back(cross);
 		crosses.push_back(cross1);
+		crosses.push_back(cross2);
 	}
 
 	void GenerateCars(rapidjson::Value& carArray, rapidjson::Document::AllocatorType& allocator)
