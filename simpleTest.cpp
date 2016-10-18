@@ -173,8 +173,8 @@ void LoadPatt()
 
 int main(int argc, char *argv[])
 {
-	glutInit(&argc, argv);
-    init(argc, argv);
+	/*glutInit(&argc, argv);
+    init(argc, argv);*/
 
 	// socket
 	/*client.InitSocket();
@@ -187,17 +187,20 @@ int main(int argc, char *argv[])
 	
 	preMs = duration_cast<milliseconds>(system_clock::now().time_since_epoch());
 	preMsFrame = preMs;
-	argSetDispFunc(testLoop, 1);
-	//argSetDispFunc(mainLoop, 1);
-	argSetKeyFunc( keyFunc );
-	arSetLabelingThresh(arHandle,85);
-	count = 0;
-    fps[0] = '\0';
-	arUtilTimerReset();
-    argMainLoop();
 
-	//client.Close();
-	server.Close();
+	while (true)
+		testLoop();
+
+	//argSetDispFunc(mainLoop, 1);
+	//argSetKeyFunc( keyFunc );
+	//arSetLabelingThresh(arHandle,85);
+	//count = 0;
+ //   fps[0] = '\0';
+	//arUtilTimerReset();
+ //   argMainLoop();
+
+	////client.Close();
+	//server.Close();
 	return (0);
 }
 
