@@ -43,26 +43,33 @@ public :
 	void InitCrosses()//call only detection not available
 	{
 		Cross cross;
-		cross.position[0] = 16;
-		cross.position[1] = 8;
+		cross.position[0] = 19;
+		cross.position[1] = 2;
 		cross.type = "xcross_greenlight";
 		cross.orientation = 1;
 
 		Cross cross1;
-		cross1.position[0] = 24;
-		cross1.position[1] = 8;
-		cross1.type = "tcross_greenlight";
+		cross1.position[0] = 6;
+		cross1.position[1] = 2;
+		cross1.type = "xcross_greenlight";
 		cross1.orientation = 3;
 
 		Cross cross2;
-		cross2.position[0] = 24;
-		cross2.position[1] = 2;
-		cross2.type = "lcross_greenlight";
-		cross2.orientation = 3;
+		cross2.position[0] = 19;
+		cross2.position[1] = 12;
+		cross2.type = "xcross_greenlight";
+		cross2.orientation = 1;
+
+		Cross cross3;
+		cross3.position[0] = 6;
+		cross3.position[1] = 12;
+		cross3.type = "xcross_greenlight";
+		cross3.orientation = 2;
 
 		crosses.push_back(cross);
 		crosses.push_back(cross1);
 		crosses.push_back(cross2);
+		crosses.push_back(cross3);
 	}
 
 	void GenerateCars(rapidjson::Value& carArray, rapidjson::Document::AllocatorType& allocator)
