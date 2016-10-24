@@ -106,11 +106,23 @@ typedef enum Orientation {
 	UP, RIGHT,DOWN,LEFT
 } Orientation;
 
+typedef enum ProcessingStatus {
+	AR_INIT,AR_CALIBRATE,AR_RECOGNIZE,AR_IDLE
+} ProcessingStatus;
+
 typedef struct Marker {
 	int x, y;
 	MarkerType type;
 	Orientation orientation;
 } Marker;
+
+typedef struct CalibrateParams {
+	double	xlu,ylu,
+			xld,yld,
+			xru,yru,
+			xrd,yrd;
+					
+} CalibrateParams;
 
 ARHandle           *arHandle;
 ARPattHandle       *arPattHandle;
@@ -128,6 +140,7 @@ int                 distF = 0;
 int                 contF = 0;
 ARParamLT          *gCparamLT = NULL;
 
+ProcessingStatus status = AR_INIT;
 //client socket
 Server server;
 bool rotateFlag = false;
@@ -135,6 +148,7 @@ bool rotateFlag = false;
 static void   init(int argc, char *argv[]);
 static void   keyFunc( unsigned char key, int x, int y );
 static void   cleanup(void);
+static void	  recognize(void);
 static void   mainLoop(void);
 static void   draw( ARdouble trans[3][4] );
 Orientation computeOrientation(ARdouble trans[3][4]);
@@ -468,13 +482,12 @@ Orientation computeOrientation(ARdouble trans[3][4])
 	
 }
 
-static void mainLoop(void)
+static void recognize(MarkerType markerType[PLANAR_ROWS][PLANAR_COLS], CalibrateParams* params)
 {
     static int      contF2 = 0;
     static ARdouble patt_trans[3][4];
     static ARUint8 *dataPtr = NULL;
 	static long int liveCount[PLANAR_ROWS][PLANAR_COLS];
-	static MarkerType markerType[PLANAR_ROWS][PLANAR_COLS];
 	static Orientation markerOrientation[PLANAR_ROWS][PLANAR_COLS];
 	static int initFlag = 1;
 	static int x, y;
@@ -490,17 +503,11 @@ static void mainLoop(void)
 	int recognizedMarkerNum = 0;
 	static long int rotatemarker = 0;
 
-	/*first visit*/
-	if (initFlag == 1) {
-		for (int i = 0; i < PLANAR_ROWS; i++)
-			for (int j = 0; j < PLANAR_COLS; j++)
-			{
-				markerType[i][j] = NONE;
-				liveCount[i][j] = 0;
-			}
-		initFlag = 0;
-	}
-
+	static double	xlu = -0.253599,	ylu = -0.299156,
+					xld = -0.251457,	yld = 0.275205,
+					xru = 0.264789,	yru = -0.300741,
+					xrd = 0.262516,	yrd = 0.272299;
+						
     /* grab a video frame */
     if( (dataPtr = (ARUint8 *)arVideoGetImage()) == NULL ) {
         arUtilSleep(2);
@@ -572,11 +579,6 @@ static void mainLoop(void)
 						//MYLOG("%f\t%f\n", patt_trans[0][3] / patt_trans[2][3], patt_trans[1][3] / patt_trans[2][3]);
 						//printf("%f\t%f\n", patt_trans[0][3] / patt_trans[2][3], patt_trans[1][3] / patt_trans[2][3]);
 
-						static double	xlu = -0.253599,	ylu = -0.299156,
-										xld = -0.251457,	yld = 0.275205,
-										xru = 0.264789,	yru = -0.300741,
-										xrd = 0.262516,	yrd = 0.272299;
-						
 						static double	yu,yd;
 						static double	x0, y0;
 						static double	lenLeft = yld - ylu, lenRight = yrd - yru;
@@ -725,6 +727,273 @@ static void mainLoop(void)
 	server.Send(json);
 	
     argSwapBuffers();
+}
+
+static void initRecognize()
+{
+	for (int i = 0; i < PLANAR_ROWS; i++)
+		for (int j = 0; j < PLANAR_COLS; j++)
+		{
+			markerType[i][j] = NONE;
+			liveCount[i][j] = 0;
+		}
+	status = ProcessingStatus::AR_CALIBRATE;
+}
+
+static void ComputeParams(CalibrateParams* params)
+{
+    static int      contF2 = 0;
+    static ARdouble patt_trans[3][4];
+    static ARUint8 *dataPtr = NULL;
+	static long int liveCount[PLANAR_ROWS][PLANAR_COLS];
+	static int x, y;
+	static MarkerType type;
+	static Orientation orientation;
+    ARMarkerInfo   *markerInfo;
+    int             markerNum;
+    ARdouble        err;
+    int             imageProcMode;
+    int             debugMode;
+    int             j;
+	Marker				markers[MAX_MARKER_NUM];
+	int recognizedMarkerNum = 0;
+	static long int rotatemarker = 0;
+
+	static double	xlu = -0.253599,	ylu = -0.299156,
+					xld = -0.251457,	yld = 0.275205,
+					xru = 0.264789,	yru = -0.300741,
+					xrd = 0.262516,	yrd = 0.272299;
+						
+    /* grab a video frame */
+    if( (dataPtr = (ARUint8 *)arVideoGetImage()) == NULL ) {
+        arUtilSleep(2);
+        return;
+    }
+
+    argDrawMode2D(vp);
+    arGetDebugMode( arHandle, &debugMode );
+    if( debugMode == 0 ) {
+        argDrawImage( dataPtr );
+    }
+    else {
+        arGetImageProcMode(arHandle, &imageProcMode);
+        if( imageProcMode == AR_IMAGE_PROC_FRAME_IMAGE ) {
+            argDrawImage( arHandle->labelInfo.bwImage );
+        }
+        else {
+            argDrawImageHalf( arHandle->labelInfo.bwImage );
+        }
+    }
+  //  MYLOG("xsize = %d, ysize = %d\n",arHandle->xsize,arHandle->ysize);
+    /* detect the markers in the video frame */
+    if( arDetectMarker(arHandle, dataPtr) < 0 ) {
+        cleanup();
+        exit(0);
+    }
+
+    if( count % 60 == 0 ) {
+        sprintf(fps, "%f[fps]", 60.0/arUtilTimer());
+        arUtilTimerReset();
+    }
+    count++;
+    glColor3f(0.0f, 1.0f, 0.0f);
+    argDrawStringsByIdealPos(fps, 10, ysize-30);
+
+    markerNum = arGetMarkerNum( arHandle );
+    if( markerNum == 0 ) {
+        argSwapBuffers();
+        return;
+    }
+
+    /* check for object visibility */
+    markerInfo =  arGetMarker( arHandle );
+
+	int num = 0;
+    for(int j = 0; j<markerNum ; j++)
+    {
+        for(int i = 1; i <= PATT_NUM; i++ ) {
+           // ARLOG("ID=%d, CF = %f\n", markerInfo[j].id, markerInfo[j].cf);
+            if( patt_ids[i] == markerInfo[j].id ) {
+              //  if( k == -1 ) {
+                    if (markerInfo[j].cf >= 0.7) {
+						num++;
+             //           MYLOG("line = %d\n",arHandle->markerInfo2[j].coord_num/4);
+                        err = arGetTransMatSquare(ar3DHandle, &(markerInfo[j]), patt_width, patt_trans);
+                        sprintf(errValue, "err = %f", err);
+                        glColor3f(0.0f, 1.0f, 0.0f);
+                        argDrawStringsByIdealPos(fps, 10, ysize-30);
+                        argDrawStringsByIdealPos(errValue, 10, ysize-60);
+             //           ARLOG("err = %f\n", err);
+                        
+                        
+						
+						/*work out the coordinate&&orientation of the marker on the planar*/
+                        //MYLOG("%d\t%d\t%d\n",(int)(patt_trans[0][3]),(int)(patt_trans[1][3]),(int)(patt_trans[2][3]));
+						//MYLOG("%f\t%f\n", patt_trans[0][3] / patt_trans[2][3], patt_trans[1][3] / patt_trans[2][3]);
+						//printf("%f\t%f\n", patt_trans[0][3] / patt_trans[2][3], patt_trans[1][3] / patt_trans[2][3]);
+
+						static double	yu,yd;
+						static double	x0, y0;
+						static double	lenLeft = yld - ylu, lenRight = yrd - yru;
+
+						static double	len;
+						static double deltaxl = 0.026, deltaxr = 0.034;
+						static double accx = 0, xnum = 0, accy = 0, accz = 0;
+						x0 = patt_trans[0][3] / patt_trans[2][3];
+						y0 = patt_trans[1][3] / patt_trans[2][3];
+						/*
+						accx += x0;
+						accy += y0;
+						accz += patt_trans[2][3];
+						xnum += 1;
+						printf("zmean = %lf\n", accz/xnum);
+						*/
+						
+
+						//printf("ymean = %lf\n", accy / xnum);
+						//MYLOG("x0 = %lf, y0 = %lf\n", x0, y0);
+						//xu = (xru - x0) / (xru - xlu) * 31;
+						//xd = (xrd - x0) / (xrd - xld) * 31;
+						//MYLOG("xu = %lf, xd = %lf\n", xu, xd);
+						//x = (int)((yrd - y0) / (yrd - yru)*xd + (y0 - yru) / (yrd - yru)*xu + 0.5);
+
+						//out of the plane
+
+						if (x0 < xlu - (xru - xlu) / 19.0 / 2.0)	continue;
+						if (patt_trans[2][3] <= 2600.0 || patt_trans[2][3] >= 2900.0) continue;
+						x = (int)((x0 - (xlu)) / ((xru) - (xlu)) * 19 + 0.5 );
+						len = x / 19.0*lenRight + (19.0 - x) / 19.0*lenLeft;
+						x = x + 6;
+						yu = yrd - len;
+						//MYLOG("yu = %lf\n",yu);
+						MYLOG("!!!!!! =  %lf\n", (x0 - (xlu)) / ((xru) - (xlu)));
+						//printf("x =  %d\n", x);
+
+						y = (int)((y0 - yu) / len*15.0 + 0.5);
+
+						/*
+						if( patt_trans[0][3] > 0 ) x = (int)(patt_trans[0][3] / patt_trans[2][3] / 0.03) + 1;
+						else x = (int)(patt_trans[0][3] / patt_trans[2][3] / 0.03) - 1;
+						if( patt_trans[1][3] > 0 )	y = (int)(patt_trans[1][3] / patt_trans[2][3] / 0.048) + 1;
+						else y = (int)(patt_trans[1][3] / patt_trans[2][3] / 0.048) - 1;
+						x = x + PLANAR_ROWS / 2;
+						y = y + PLANAR_COLS / 2;
+						*/
+
+						//MYLOG("x = %d, y = %d\n", x, y);
+
+						if (x >= PLANAR_ROWS || x < 0) {
+							MYLOG("x = %d out of range!\n",x);
+							continue;
+						}
+						if (y >= PLANAR_COLS || y < 0) {
+							MYLOG("y = %d out of range!\n",y);
+							continue;
+						}
+						if (patt_ids[i] >= MarkerType::NUM) type = MarkerType::NONE;
+						else type = (MarkerType)(patt_ids[i] + 1);
+						orientation = computeOrientation(patt_trans);
+
+						/*fill the marker into the cell && make it be reconized robust*/
+			//			MYLOG("type = %d\n", (int)type);
+			//			MYLOG("markerType[x][y] = %d\n", markerType[x][y]);
+						if (type == NONE) continue;
+						if (type == ROTATE)
+						{
+							rotatemarker |= 0x1;
+							continue;
+						}
+						if (markerType[x][y] == type && markerOrientation[x][y] == orientation)
+						{
+							liveCount[x][y] |= 0x1;
+			//				markerOrientation[x][y] = orientation;
+			//				MYLOG("entry1\n");
+						}
+						else if (markerType[x][y] == NONE)
+						{
+							markerOrientation[x][y] = orientation;
+							markerType[x][y] = type;
+							liveCount[x][y] |= 0x1;
+			//				MYLOG("entry2");
+						}
+						draw(patt_trans);
+
+                    }
+           //     } //else if( markerInfo[j].cf > markerInfo[k].cf ) k = j;
+            }
+        }
+        //draw(patt_trans);
+    }
+	//MYLOG("num = %d\n",num);
+	//MYLOG("end!\n");
+	/* live count increase*/
+	for (int i = 0; i < PLANAR_ROWS; i++)
+		for (int j = 0; j < PLANAR_COLS; j++)
+		{
+			liveCount[i][j] <<= 1;
+			liveCount[i][j] &= 0xffffff ;
+			if (liveCount[i][j] == 0) markerType[i][j] = NONE;
+		}
+
+	rotatemarker <<= 1;
+	rotatemarker &= 0xffffff;
+	if (rotatemarker == 0) rotateFlag = false;
+	else rotateFlag = true;
+
+	/*record the reconized markers*/
+	for (int i = 0; i < PLANAR_ROWS; i++)
+		for (int j = 0; j < PLANAR_COLS; j++)
+		{
+			if (markerType[i][j] == NONE) continue;
+
+			markers[recognizedMarkerNum].x = i;
+			markers[recognizedMarkerNum].y = j;
+			markers[recognizedMarkerNum].type = markerType[i][j];
+			markers[recognizedMarkerNum].orientation = markerOrientation[i][j];
+			/*
+			switch (markers[recognizedMarkerNum].orientation)
+			{
+			case Orientation::UP: MYLOG("UP\n"); break;
+			case Orientation::LEFT: MYLOG("LEFT\n"); break;
+			case Orientation::RIGHT: MYLOG("RIGHT\n"); break;
+			case Orientation::DOWN: MYLOG("DOWN\n"); break;
+			default: MYLOG("Orientation Err!\n"); break;
+			}
+			switch (markers[recognizedMarkerNum].type)
+			{
+			case TAXI:MYLOG("taxi\n"); break;
+			case BUS:MYLOG("bus\n"); break;
+			case TCROSS:MYLOG("tcross\n"); break;
+			default: MYLOG("Marker type haven't been imported!\n"); break;
+			}
+			*/
+			recognizedMarkerNum++;
+			//MYLOG("%d %d\n", i, j);
+		}
+	//MYLOG("reconized markers = %d\n", recognizedMarkerNum);
+	transferToJson(doc, recognizedMarkerNum, markers);
+	static string oldjson;
+	string json = printJson(doc);
+//	if (oldjson != json) system("pause");
+	oldjson = json;
+	
+	server.Send(json);
+	
+    argSwapBuffers();
+}
+
+static void mainLoop()
+{
+	static MarkerType markerType[PLANAR_ROWS][PLANAR_COLS];
+	static CalibrateParams* params = (CalibrateParams*)malloc(sizeof(CalibrateParams));
+	if( status == AR_INIT)
+		initRecognize(markerType);
+	else if(status == AR_CALIBRATE)
+		ComputeParams(params);
+	else if(status == AR_RECOGNIZE)
+		recognize(markerType, params);
+	else
+		printf("Idle!\n");
 }
 
 static void   init(int argc, char *argv[])
