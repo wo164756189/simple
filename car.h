@@ -172,6 +172,31 @@ static void testLoop(void)
 
 		mkArray.PushBack(mk, allocator);
 	}
+
+	//station
+	rapidjson::Value stationMK(rapidjson::kObjectType);
+	rapidjson::Value span(rapidjson::kObjectType);
+	rapidjson::Value spanX(1);
+	rapidjson::Value spanY(1);
+	rapidjson::Value x(4);
+	rapidjson::Value y(3);
+	rapidjson::Value type((int)(22));
+	rapidjson::Value orientation(1);
+
+	stationMK.AddMember("x", x, allocator);
+	stationMK.AddMember("y", y, allocator);
+	stationMK.AddMember("type", "BLOCK", allocator);
+	rapidjson::Value s;
+	string str("station");
+	s.SetString(rapidjson::StringRef(str.c_str()));
+	stationMK.AddMember("id", s, allocator);
+	stationMK.AddMember("orientation", 1, allocator);
+	span.AddMember("x", spanX, allocator);
+	span.AddMember("y", spanY, allocator);
+	stationMK.AddMember("span", span, allocator);
+	mkArray.PushBack(stationMK, allocator);
+
+	//add array
 	doc.AddMember("entry", mkArray, allocator);
 
 	curMs = duration_cast<milliseconds>(system_clock::now().time_since_epoch());
