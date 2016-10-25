@@ -120,122 +120,122 @@ public :
 };
 
 //car
-CarGenerator carGenerator;
-milliseconds preMs, curMs;
-milliseconds preMsFrame, curMsFrame;
-
-//connection
-Server carServer;
-
-static void testLoop(void)
-{
-	curMsFrame = duration_cast<milliseconds>(system_clock::now().time_since_epoch());
-	std::chrono::duration<double, std::milli> fp_msFrame = curMsFrame - preMsFrame;
-	if (fp_msFrame < std::chrono::duration<double, std::milli>(33.3f))
-		return;
-
-	rapidjson::Document doc;
-	doc.SetObject();
-
-	rapidjson::Document::AllocatorType& allocator = doc.GetAllocator();
-	rapidjson::Value width(32);
-	rapidjson::Value height(16);
-	rapidjson::Value blockSize;
-	blockSize.SetObject();
-	blockSize.AddMember("width", width, allocator);
-	blockSize.AddMember("height", height, allocator);
-	doc.AddMember("blockSize", blockSize, allocator);
-
-	rapidjson::Value mkArray(rapidjson::kArrayType);
-
-	for (int i = 0; i < carGenerator.crosses.size(); ++i)
-	{
-		rapidjson::Value mk(rapidjson::kObjectType);
-		rapidjson::Value span(rapidjson::kObjectType);
-		rapidjson::Value spanX(1);
-		rapidjson::Value spanY(1);
-		rapidjson::Value x(carGenerator.crosses[i].position[0]);
-		rapidjson::Value y(carGenerator.crosses[i].position[1]);
-		rapidjson::Value type((int)(22));
-		rapidjson::Value orientation((int)(carGenerator.crosses[i].orientation));
-
-		mk.AddMember("x", x, allocator);
-		mk.AddMember("y", y, allocator);
-		mk.AddMember("type", "BLOCK", allocator);
-		rapidjson::Value s;
-		s.SetString(rapidjson::StringRef(carGenerator.crosses[i].type.c_str()));
-		mk.AddMember("id", s, allocator);
-		mk.AddMember("orientation", carGenerator.crosses[i].orientation, allocator);
-		span.AddMember("x", spanX, allocator);
-		span.AddMember("y", spanY, allocator);
-		mk.AddMember("span", span, allocator);
-
-		mkArray.PushBack(mk, allocator);
-	}
-
-	//station
-	rapidjson::Value stationMK(rapidjson::kObjectType);
-	rapidjson::Value span(rapidjson::kObjectType);
-	rapidjson::Value spanX(1);
-	rapidjson::Value spanY(1);
-	rapidjson::Value x(4);
-	rapidjson::Value y(3);
-	rapidjson::Value type((int)(22));
-	rapidjson::Value orientation(1);
-
-	stationMK.AddMember("x", x, allocator);
-	stationMK.AddMember("y", y, allocator);
-	stationMK.AddMember("type", "BLOCK", allocator);
-	rapidjson::Value s;
-	string str("station");
-	s.SetString(rapidjson::StringRef(str.c_str()));
-	stationMK.AddMember("id", s, allocator);
-	stationMK.AddMember("orientation", 1, allocator);
-	span.AddMember("x", spanX, allocator);
-	span.AddMember("y", spanY, allocator);
-	stationMK.AddMember("span", span, allocator);
-	mkArray.PushBack(stationMK, allocator);
-
-	//add array
-	doc.AddMember("entry", mkArray, allocator);
-
-	curMs = duration_cast<milliseconds>(system_clock::now().time_since_epoch());
-	std::chrono::duration<double, std::milli> fp_ms = curMs - preMs;
-	//cars
-	bool flag = false;
-	rapidjson::Value cars(rapidjson::kArrayType);
-	if (fp_ms >= std::chrono::duration<double, std::milli>(2000.0f))
-	{
-		flag = !flag;
-		printf("car gen\n");
-		carGenerator.GenerateCars(cars, allocator);
-		preMs = curMs;
-	}
-	doc.AddMember("cars", cars, allocator);
-
-	//car dir
-	rapidjson::Value carDir(rapidjson::kObjectType);
-	int TDir = rand() * 1.0f * 2 / RAND_MAX; // 0 1
-	if (TDir == 2) TDir--;
-	int XDir = rand() * 1.0f * 3 / RAND_MAX; // 0 1 2
-	if (XDir == 3) XDir--;
-
-	carDir.AddMember("tcrossDir", TDir, allocator);
-	carDir.AddMember("xcrossDir", XDir, allocator);
-	doc.AddMember("carDir", carDir, allocator);
-
-	//print json
-	stringstream ss;
-	ss.str("");
-	rapidjson::StringBuffer strbuf;
-	rapidjson::Writer<rapidjson::StringBuffer> writer(strbuf);
-	doc.Accept(writer);
-
-	const char* jstr = strbuf.GetString();
-	ss << jstr;
-
-	if (flag)
-		printf("%s\n", ss.str().c_str());
-	carServer.Send(ss.str());
-	preMsFrame = curMsFrame;
-}
+//CarGenerator carGenerator;
+//milliseconds preMs, curMs;
+//milliseconds preMsFrame, curMsFrame;
+//
+////connection
+//Server carServer;
+//
+//static void testLoop(void)
+//{
+//	curMsFrame = duration_cast<milliseconds>(system_clock::now().time_since_epoch());
+//	std::chrono::duration<double, std::milli> fp_msFrame = curMsFrame - preMsFrame;
+//	if (fp_msFrame < std::chrono::duration<double, std::milli>(33.3f))
+//		return;
+//
+//	rapidjson::Document doc;
+//	doc.SetObject();
+//
+//	rapidjson::Document::AllocatorType& allocator = doc.GetAllocator();
+//	rapidjson::Value width(32);
+//	rapidjson::Value height(16);
+//	rapidjson::Value blockSize;
+//	blockSize.SetObject();
+//	blockSize.AddMember("width", width, allocator);
+//	blockSize.AddMember("height", height, allocator);
+//	doc.AddMember("blockSize", blockSize, allocator);
+//
+//	rapidjson::Value mkArray(rapidjson::kArrayType);
+//
+//	for (int i = 0; i < carGenerator.crosses.size(); ++i)
+//	{
+//		rapidjson::Value mk(rapidjson::kObjectType);
+//		rapidjson::Value span(rapidjson::kObjectType);
+//		rapidjson::Value spanX(1);
+//		rapidjson::Value spanY(1);
+//		rapidjson::Value x(carGenerator.crosses[i].position[0]);
+//		rapidjson::Value y(carGenerator.crosses[i].position[1]);
+//		rapidjson::Value type((int)(22));
+//		rapidjson::Value orientation((int)(carGenerator.crosses[i].orientation));
+//
+//		mk.AddMember("x", x, allocator);
+//		mk.AddMember("y", y, allocator);
+//		mk.AddMember("type", "BLOCK", allocator);
+//		rapidjson::Value s;
+//		s.SetString(rapidjson::StringRef(carGenerator.crosses[i].type.c_str()));
+//		mk.AddMember("id", s, allocator);
+//		mk.AddMember("orientation", carGenerator.crosses[i].orientation, allocator);
+//		span.AddMember("x", spanX, allocator);
+//		span.AddMember("y", spanY, allocator);
+//		mk.AddMember("span", span, allocator);
+//
+//		mkArray.PushBack(mk, allocator);
+//	}
+//
+//	//station
+//	rapidjson::Value stationMK(rapidjson::kObjectType);
+//	rapidjson::Value span(rapidjson::kObjectType);
+//	rapidjson::Value spanX(1);
+//	rapidjson::Value spanY(1);
+//	rapidjson::Value x(4);
+//	rapidjson::Value y(3);
+//	rapidjson::Value type((int)(22));
+//	rapidjson::Value orientation(1);
+//
+//	stationMK.AddMember("x", x, allocator);
+//	stationMK.AddMember("y", y, allocator);
+//	stationMK.AddMember("type", "BLOCK", allocator);
+//	rapidjson::Value s;
+//	string str("station");
+//	s.SetString(rapidjson::StringRef(str.c_str()));
+//	stationMK.AddMember("id", s, allocator);
+//	stationMK.AddMember("orientation", 1, allocator);
+//	span.AddMember("x", spanX, allocator);
+//	span.AddMember("y", spanY, allocator);
+//	stationMK.AddMember("span", span, allocator);
+//	mkArray.PushBack(stationMK, allocator);
+//
+//	//add array
+//	doc.AddMember("entry", mkArray, allocator);
+//
+//	curMs = duration_cast<milliseconds>(system_clock::now().time_since_epoch());
+//	std::chrono::duration<double, std::milli> fp_ms = curMs - preMs;
+//	//cars
+//	bool flag = false;
+//	rapidjson::Value cars(rapidjson::kArrayType);
+//	if (fp_ms >= std::chrono::duration<double, std::milli>(2000.0f))
+//	{
+//		flag = !flag;
+//		printf("car gen\n");
+//		carGenerator.GenerateCars(cars, allocator);
+//		preMs = curMs;
+//	}
+//	doc.AddMember("cars", cars, allocator);
+//
+//	//car dir
+//	rapidjson::Value carDir(rapidjson::kObjectType);
+//	int TDir = rand() * 1.0f * 2 / RAND_MAX; // 0 1
+//	if (TDir == 2) TDir--;
+//	int XDir = rand() * 1.0f * 3 / RAND_MAX; // 0 1 2
+//	if (XDir == 3) XDir--;
+//
+//	carDir.AddMember("tcrossDir", TDir, allocator);
+//	carDir.AddMember("xcrossDir", XDir, allocator);
+//	doc.AddMember("carDir", carDir, allocator);
+//
+//	//print json
+//	stringstream ss;
+//	ss.str("");
+//	rapidjson::StringBuffer strbuf;
+//	rapidjson::Writer<rapidjson::StringBuffer> writer(strbuf);
+//	doc.Accept(writer);
+//
+//	const char* jstr = strbuf.GetString();
+//	ss << jstr;
+//
+//	if (flag)
+//		printf("%s\n", ss.str().c_str());
+//	carServer.Send(ss.str());
+//	preMsFrame = curMsFrame;
+//}
