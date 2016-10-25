@@ -1,11 +1,22 @@
 #pragma once
+#include <iostream>
 #include <string>
+#include <chrono>
 #include <vector>
+#include <AR/ar.h>
+#include <AR/gsub.h>
+#include <AR/video.h>
 #include <rapidjson/document.h>
 #include <rapidjson/writer.h>
 #include <rapidjson/stringbuffer.h>
+#include <sstream>
+#include "connection.h"
+using std::cout;
+using std::endl;
 using std::string;
 using std::vector;
+using std::stringstream;
+using namespace std::chrono;
 
 class Car
 {
@@ -28,6 +39,39 @@ class CarGenerator
 {
 public :
 	vector<Cross> crosses;
+
+	void InitCrosses()//call only detection not available
+	{
+		Cross cross;
+		cross.position[0] = 19;
+		cross.position[1] = 2;
+		cross.type = "xcross_greenlight";
+		cross.orientation = 1;
+
+		Cross cross1;
+		cross1.position[0] = 6;
+		cross1.position[1] = 2;
+		cross1.type = "xcross_greenlight";
+		cross1.orientation = 3;
+
+		Cross cross2;
+		cross2.position[0] = 19;
+		cross2.position[1] = 12;
+		cross2.type = "xcross_greenlight";
+		cross2.orientation = 1;
+
+		Cross cross3;
+		cross3.position[0] = 6;
+		cross3.position[1] = 12;
+		cross3.type = "xcross_greenlight";
+		cross3.orientation = 2;
+
+		crosses.push_back(cross);
+		crosses.push_back(cross1);
+		crosses.push_back(cross2);
+		crosses.push_back(cross3);
+	}
+
 	void GenerateCars(rapidjson::Value& carArray, rapidjson::Document::AllocatorType& allocator)
 	{
 		for (int i = 0; i < crosses.size(); ++i)//crosses(random)
@@ -74,3 +118,99 @@ public :
 		}
 	}
 };
+
+//car
+CarGenerator carGenerator;
+milliseconds preMs, curMs;
+milliseconds preMsFrame, curMsFrame;
+
+//connection
+Server carServer;
+
+static void testLoop(void)
+{
+	curMsFrame = duration_cast<milliseconds>(system_clock::now().time_since_epoch());
+	std::chrono::duration<double, std::milli> fp_msFrame = curMsFrame - preMsFrame;
+	if (fp_msFrame < std::chrono::duration<double, std::milli>(33.3f))
+		return;
+
+	rapidjson::Document doc;
+	doc.SetObject();
+
+	rapidjson::Document::AllocatorType& allocator = doc.GetAllocator();
+	rapidjson::Value width(32);
+	rapidjson::Value height(16);
+	rapidjson::Value blockSize;
+	blockSize.SetObject();
+	blockSize.AddMember("width", width, allocator);
+	blockSize.AddMember("height", height, allocator);
+	doc.AddMember("blockSize", blockSize, allocator);
+
+	rapidjson::Value mkArray(rapidjson::kArrayType);
+
+	for (int i = 0; i < carGenerator.crosses.size(); ++i)
+	{
+		rapidjson::Value mk(rapidjson::kObjectType);
+		rapidjson::Value span(rapidjson::kObjectType);
+		rapidjson::Value spanX(1);
+		rapidjson::Value spanY(1);
+		rapidjson::Value x(carGenerator.crosses[i].position[0]);
+		rapidjson::Value y(carGenerator.crosses[i].position[1]);
+		rapidjson::Value type((int)(22));
+		rapidjson::Value orientation((int)(carGenerator.crosses[i].orientation));
+
+		mk.AddMember("x", x, allocator);
+		mk.AddMember("y", y, allocator);
+		mk.AddMember("type", "BLOCK", allocator);
+		rapidjson::Value s;
+		s.SetString(rapidjson::StringRef(carGenerator.crosses[i].type.c_str()));
+		mk.AddMember("id", s, allocator);
+		mk.AddMember("orientation", carGenerator.crosses[i].orientation, allocator);
+		span.AddMember("x", spanX, allocator);
+		span.AddMember("y", spanY, allocator);
+		mk.AddMember("span", span, allocator);
+
+		mkArray.PushBack(mk, allocator);
+	}
+	doc.AddMember("entry", mkArray, allocator);
+
+	curMs = duration_cast<milliseconds>(system_clock::now().time_since_epoch());
+	std::chrono::duration<double, std::milli> fp_ms = curMs - preMs;
+	//cars
+	bool flag = false;
+	rapidjson::Value cars(rapidjson::kArrayType);
+	if (fp_ms >= std::chrono::duration<double, std::milli>(2000.0f))
+	{
+		flag = !flag;
+		printf("car gen\n");
+		carGenerator.GenerateCars(cars, allocator);
+		preMs = curMs;
+	}
+	doc.AddMember("cars", cars, allocator);
+
+	//car dir
+	rapidjson::Value carDir(rapidjson::kObjectType);
+	int TDir = rand() * 1.0f * 2 / RAND_MAX; // 0 1
+	if (TDir == 2) TDir--;
+	int XDir = rand() * 1.0f * 3 / RAND_MAX; // 0 1 2
+	if (XDir == 3) XDir--;
+
+	carDir.AddMember("tcrossDir", TDir, allocator);
+	carDir.AddMember("xcrossDir", XDir, allocator);
+	doc.AddMember("carDir", carDir, allocator);
+
+	//print json
+	stringstream ss;
+	ss.str("");
+	rapidjson::StringBuffer strbuf;
+	rapidjson::Writer<rapidjson::StringBuffer> writer(strbuf);
+	doc.Accept(writer);
+
+	const char* jstr = strbuf.GetString();
+	ss << jstr;
+
+	if (flag)
+		printf("%s\n", ss.str().c_str());
+	carServer.Send(ss.str());
+	preMsFrame = curMsFrame;
+}
