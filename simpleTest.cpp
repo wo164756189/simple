@@ -99,8 +99,7 @@ using namespace std::chrono;
 
 
 typedef enum MarkerType {
-	NONE, BLOCK01, BLOCK02, BLOCK03, BLOCK04, BLOCK05, BLOCK06, BLOCK07, BLOCK08, BLOCK09,
-	BLOCK11, BLOCK12, BLOCK13, BLOCK14, BLOCK15, BLOCK16, BLOCK17, BLOCK18, BLOCK19, BLOCK20,
+	NONE, ROADPIN,CARGEN,
 	LCROSS, TCROSS, XCROSS, LIGHTLCROSS, LIGHTTCROSS, LIGHTXCROSS, STATION, PARK, ROTATE,
 	M11, M12, M31, M32, M33, M34, M41, M42, M43, M51, M52, M53, M54, M55, M56, M57, M58, M61,
 	NUM
@@ -135,6 +134,8 @@ ARParamLT          *gCparamLT = NULL;
 //client socket
 Server server;
 bool rotateFlag = false;
+bool roadPinFlag = false;
+bool carGenFlag = false;
 //car
 CarGenerator carGenerator;
 milliseconds preMs, curMs;
@@ -220,7 +221,7 @@ int main(int argc, char *argv[])
 	argSetDispFunc(mainLoop, 1);
 	argSetKeyFunc(keyFunc);
 	//arSetLabelingThreshMode(arHandle,AR_LABELING_THRESH_MODE_AUTO_ADAPTIVE);
-	//arSetLabelingThresh(arHandle,85);
+	arSetLabelingThresh(arHandle,85);
 	count = 0;
 	fps[0] = '\0';
 	arUtilTimerReset();
@@ -322,6 +323,8 @@ void transferToJson(rapidjson::Document& doc, int markernum, Marker* markers)
 	doc.AddMember("blockSize", blockSize, allocator);
 
 	doc.AddMember("rotate", rotateFlag, allocator);
+	doc.AddMember("roadPin", roadPinFlag, allocator);
+	doc.AddMember("carGen", carGenFlag, allocator);
 
 	rapidjson::Value mkArray(rapidjson::kArrayType);
 	for (int i = 0; i < markernum; i++)
@@ -341,6 +344,7 @@ void transferToJson(rapidjson::Document& doc, int markernum, Marker* markers)
 		mk.AddMember("type", "BLOCK", allocator);
 		switch (markers[i].type)
 		{
+			/*
 		case BLOCK01:mk.AddMember("id", "1", allocator); break;
 		case BLOCK02:mk.AddMember("id", "2", allocator); break;
 		case BLOCK03:mk.AddMember("id", "3", allocator); break;
@@ -360,6 +364,7 @@ void transferToJson(rapidjson::Document& doc, int markernum, Marker* markers)
 		case BLOCK18:mk.AddMember("id", "18", allocator); break;
 		case BLOCK19:mk.AddMember("id", "19", allocator); break;
 		case BLOCK20:mk.AddMember("id", "20", allocator); break;
+		*/
 		case TCROSS:
 		{
 			mk.AddMember("id", "tcross", allocator);
@@ -428,6 +433,24 @@ void transferToJson(rapidjson::Document& doc, int markernum, Marker* markers)
 		}
 		case STATION:mk.AddMember("id", "station", allocator); break;
 		case PARK:mk.AddMember("id", "park", allocator); break;
+		case M11:mk.AddMember("id", "oldChargingStation", allocator); break;
+		case M12:mk.AddMember("id", "newChargingStation", allocator); break;
+		case M31:mk.AddMember("id", "largeChargingStation", allocator); break;
+		case M32:mk.AddMember("id", "container", allocator); break;
+		case M33:mk.AddMember("id", "holder", allocator); break;
+		case M34:mk.AddMember("id", "electricConnector", allocator); break;
+		case M41:mk.AddMember("id", "MV", allocator); break;
+		case M42:mk.AddMember("id", "transformer", allocator); break;
+		case M43:mk.AddMember("id", "charge", allocator); break;
+		case M51:mk.AddMember("id", "largeBus", allocator); break;
+		case M52:mk.AddMember("id", "underpan", allocator); break;
+		case M53:mk.AddMember("id", "DCSwitch", allocator); break;
+		case M54:mk.AddMember("id", "underpanDC", allocator); break;
+		case M55:mk.AddMember("id", "underpanDCCom", allocator); break;
+		case M56:mk.AddMember("id", "DC", allocator); break;
+		case M57:mk.AddMember("id", "track", allocator); break;
+		case M58:mk.AddMember("id", "com", allocator); break;
+		case M61:mk.AddMember("id", "busWithChargingStation", allocator); break;
 		default:
 			mk.AddMember("id", "4", allocator); break;
 			break;
@@ -517,6 +540,8 @@ static void mainLoop(void)
 	Marker				markers[MAX_MARKER_NUM];
 	int recognizedMarkerNum = 0;
 	static long int rotatemarker = 0;
+	static long int roadPinMarker = 0;
+	static long int carGenMarker = 0;
 
 	/*first visit*/
 	if (initFlag == 1) {
@@ -587,7 +612,7 @@ static void mainLoop(void)
 			// ARLOG("ID=%d, CF = %f\n", markerInfo[j].id, markerInfo[j].cf);
 			if (patt_ids[i] == markerInfo[j].id) {
 				//  if( k == -1 ) {
-				if (markerInfo[j].cf >= 0.5) {
+				if (markerInfo[j].cf >= 0.6) {
 					num++;
 					//           MYLOG("line = %d\n",arHandle->markerInfo2[j].coord_num/4);
 					err = arGetTransMatSquare(ar3DHandle, &(markerInfo[j]), patt_width, patt_trans);
@@ -639,7 +664,7 @@ static void mainLoop(void)
 					static double xlen = 16.0, ylen = 8.0;
 
 					if (x0 < xlu - (xru - xlu) / (xlen - 1) / 2.0)	continue;
-					if (patt_trans[2][3] <= 1200.0 || patt_trans[2][3] >= 1700.0) continue;
+					if (patt_trans[2][3] <= 1300.0 || patt_trans[2][3] >= 1700.0) continue;
 					x = (int)((x0 - (xlu)) / ((xru)-(xlu)) * (xlen - 1) + 0.5);
 					//	len = x / (xlen - 1)*lenRight + ((xlen - 1) - x) / (xlen - 1)*lenLeft;
 					x = x + 6;
@@ -660,7 +685,6 @@ static void mainLoop(void)
 					*/
 
 					//MYLOG("x = %d, y = %d\n", x, y);
-
 					if (x >= PLANAR_ROWS || x < 0) {
 						MYLOG("x = %d out of range!\n", x);
 						continue;
@@ -680,6 +704,16 @@ static void mainLoop(void)
 					if (type == ROTATE)
 					{
 						rotatemarker |= 0x1;
+						continue;
+					}
+					if (type == ROADPIN)
+					{
+						roadPinMarker |= 0x1;
+						continue;
+					}
+					if (type == CARGEN)
+					{
+						carGenMarker |= 0x1;
 						continue;
 					}
 					if (markerType[x][y] == type && markerOrientation[x][y] == orientation)
@@ -719,6 +753,15 @@ static void mainLoop(void)
 	if (rotatemarker == 0) rotateFlag = false;
 	else rotateFlag = true;
 
+	roadPinMarker <<= 1;
+	roadPinMarker &= 0xffffff;
+	if(roadPinMarker == 0) roadPinFlag = false;
+	else roadPinFlag = true;
+
+	carGenMarker <<= 1;
+	carGenMarker &= 0xffffff;
+	if (carGenMarker == 0) carGenFlag = false;
+	else carGenFlag = true;
 	/*record the reconized markers*/
 	for (int i = 0; i < PLANAR_ROWS; i++)
 		for (int j = 0; j < PLANAR_COLS; j++)
