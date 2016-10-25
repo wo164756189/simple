@@ -135,9 +135,6 @@ ARParamLT          *gCparamLT = NULL;
 //client socket
 Server server;
 bool rotateFlag = false;
-//car
-CarGenerator carGenerator;
-milliseconds preMs, curMs;
 
 static void   init(int argc, char *argv[]);
 static void   keyFunc(unsigned char key, int x, int y);
