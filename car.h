@@ -41,14 +41,36 @@ public :
 			position.AddMember("z", z, allocator);
 			car.AddMember("position", position, allocator);
 			//direction (random)
-			rapidjson::Value direction(crosses[i].orientation);
+			int randRange;
+			if (crosses[i].type == "lcross" || crosses[i].type == "lcross_greenlight")
+				randRange = 2;
+			else if (crosses[i].type == "tcross" || crosses[i].type == "tcross_greenlight")
+				randRange = 3;
+			else if (crosses[i].type == "xcross" || crosses[i].type == "xcross_greenlight")
+				randRange = 4;
+
+			int randDir = randRange * rand() * 1.0f / RAND_MAX;
+			if (randRange == randDir) randDir = 0;
+
+			int dir = (crosses[i].orientation + randDir) % 4;
+			if (0 == dir) dir = 4;
+
+			rapidjson::Value direction((crosses[i].orientation + randDir) % 4);
 			car.AddMember("direction", direction, allocator);
+			//crossType
+			rapidjson::Value s;
+			s.SetString(rapidjson::StringRef(crosses[i].type.c_str()));
+			car.AddMember("crossType", s, allocator);
 			//car mesh (random)
-			rapidjson::Value meshID(1);
+			int carMesh = 11 * rand() * 1.0f / RAND_MAX;
+			if (11 == carMesh) carMesh--;
+			rapidjson::Value meshID(carMesh);
 			car.AddMember("mesh", meshID, allocator);
 			//car speed
-			rapidjson::Value speed(20.0f);
+			rapidjson::Value speed(1.0f);
 			car.AddMember("speed", speed, allocator);
+
+			carArray.PushBack(car, allocator);
 		}
 	}
 };

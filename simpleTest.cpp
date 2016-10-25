@@ -92,14 +92,18 @@ using namespace std::chrono;
 #define             VPARA_NAME       "Data/cameraSetting-%08x%08x.dat"
 #define             PATT_NAME        "Data/hiro.patt"
 #define             PATT_PATH        "Data/mydata"
-#define             PATT_NUM         28
+#define             PATT_NUM         29
 #define				MAX_MARKER_NUM	100
 #define				PLANAR_ROWS 32
 #define				PLANAR_COLS 16
 
 
 typedef enum MarkerType {
-	NONE, BLOCK01, BLOCK02, BLOCK03, BLOCK04, BLOCK05, BLOCK06, BLOCK07, BLOCK08, BLOCK09, BLOCK11, BLOCK12, BLOCK13, BLOCK14, BLOCK15, BLOCK16, BLOCK17, BLOCK18, BLOCK19, BLOCK20, LCROSS, TCROSS, XCROSS, LIGHTLCROSS, LIGHTTCROSS, LIGHTXCROSS, STATION, PARK, ROTATE, NUM
+	NONE, BLOCK01, BLOCK02, BLOCK03, BLOCK04, BLOCK05, BLOCK06, BLOCK07, BLOCK08, BLOCK09, 
+	BLOCK11, BLOCK12, BLOCK13, BLOCK14, BLOCK15, BLOCK16, BLOCK17, BLOCK18, BLOCK19, BLOCK20,
+	LCROSS, TCROSS, XCROSS, LIGHTLCROSS, LIGHTTCROSS, LIGHTXCROSS, STATION, PARK, ROTATE, 
+	M11,M12,M31,M32,M33,M34,M41,M42,M43,M51,M52,M53,M54,M55,M56,M57,M58,M61,
+	NUM
 } MarkerType;
 
 typedef enum Orientation {
@@ -140,9 +144,35 @@ static void   keyFunc( unsigned char key, int x, int y );
 static void   cleanup(void);
 static void   mainLoop(void);
 static void   draw( ARdouble trans[3][4] );
+static void	  drawRed( ARdouble trans[3][4]);
 Orientation computeOrientation(ARdouble trans[3][4]);
 void LoadPatt();
 //void resetGL();
+
+ARdouble LUTrans[3][4] = {
+	{1,0,0,-568},
+	{0,1,0,-341},
+	{0,0,1,1347}
+};
+
+ARdouble LDTrans[3][4] = {
+	{ 1, 0, 0, -595 },
+	{ 0, 1, 0, 411 },
+	{ 0, 0, 1, 1444 }
+};
+
+ARdouble RUTrans[3][4] = {
+	{ 1, 0, 0, 590 },
+	{ 0, 1, 0, -343 },
+	{ 0, 0, 1, 1332 }
+};
+
+ARdouble RDTrans[3][4] = {
+	{ 1, 0, 0, 614 },
+	{ 0, 1, 0, 408 },
+	{ 0, 0, 1, 1419 }
+};
+
 
 void LoadPatt()
 {
@@ -184,12 +214,13 @@ int main(int argc, char *argv[])
 	client.Connect("127.0.0.1", "56025");*/
 
 	//server socket
-	server.SetAddr("192.168.1.3","56025");
+	server.SetAddr("192.168.1.2","56025");
 	
 	preMs = duration_cast<milliseconds>(system_clock::now().time_since_epoch());
     argSetDispFunc( mainLoop, 1 );
 	argSetKeyFunc( keyFunc );
-	arSetLabelingThresh(arHandle,85);
+	//arSetLabelingThreshMode(arHandle,AR_LABELING_THRESH_MODE_AUTO_ADAPTIVE);
+	//arSetLabelingThresh(arHandle,85);
 	count = 0;
     fps[0] = '\0';
 	arUtilTimerReset();
@@ -368,7 +399,7 @@ void transferToJson(rapidjson::Document& doc,int markernum,Marker* markers)
 			cross.position[0] = markers[i].x;
 			cross.position[1] = markers[i].y;
 			cross.orientation = markers[i].orientation + 1;
-			cross.type = "tcross";
+			cross.type = "tcross_greenlight";
 			carGenerator.crosses.push_back(cross);
 			break;
 		}
@@ -379,7 +410,7 @@ void transferToJson(rapidjson::Document& doc,int markernum,Marker* markers)
 			cross.position[0] = markers[i].x;
 			cross.position[1] = markers[i].y;
 			cross.orientation = markers[i].orientation + 1;
-			cross.type = "lcross";
+			cross.type = "lcross_greenlight";
 			carGenerator.crosses.push_back(cross);
 			break;
 		}
@@ -390,7 +421,7 @@ void transferToJson(rapidjson::Document& doc,int markernum,Marker* markers)
 			cross.position[0] = markers[i].x;
 			cross.position[1] = markers[i].y;
 			cross.orientation = markers[i].orientation + 1;
-			cross.type = "xcross";
+			cross.type = "xcross_greenlight";
 			carGenerator.crosses.push_back(cross);
 			break;
 		}
@@ -424,8 +455,12 @@ void transferToJson(rapidjson::Document& doc,int markernum,Marker* markers)
 
 	//cars
 	rapidjson::Value cars(rapidjson::kArrayType);
-	if(fp_ms >= std::chrono::duration<double, std::milli>(20000.0f))
+	if (fp_ms >= std::chrono::duration<double, std::milli>(2000.0f))
+	{
+		printf("car gen\n");
 		carGenerator.GenerateCars(cars, allocator);
+		preMs = curMs;
+	}
 	doc.AddMember("cars", cars, allocator);
 }
 
@@ -513,6 +548,10 @@ static void mainLoop(void)
             argDrawImageHalf( arHandle->labelInfo.bwImage );
         }
     }
+	drawRed(LUTrans);
+	drawRed(LDTrans);
+	drawRed(RUTrans);
+	drawRed(RDTrans);
   //  MYLOG("xsize = %d, ysize = %d\n",arHandle->xsize,arHandle->ysize);
     /* detect the markers in the video frame */
     if( arDetectMarker(arHandle, dataPtr) < 0 ) {
@@ -547,7 +586,7 @@ static void mainLoop(void)
            // ARLOG("ID=%d, CF = %f\n", markerInfo[j].id, markerInfo[j].cf);
             if( patt_ids[i] == markerInfo[j].id ) {
               //  if( k == -1 ) {
-                    if (markerInfo[j].cf >= 0.7) {
+                    if (markerInfo[j].cf >= 0.5) {
 						num++;
              //           MYLOG("line = %d\n",arHandle->markerInfo2[j].coord_num/4);
                         err = arGetTransMatSquare(ar3DHandle, &(markerInfo[j]), patt_width, patt_trans);
@@ -562,12 +601,12 @@ static void mainLoop(void)
 						/*work out the coordinate&&orientation of the marker on the planar*/
                         //MYLOG("%d\t%d\t%d\n",(int)(patt_trans[0][3]),(int)(patt_trans[1][3]),(int)(patt_trans[2][3]));
 						//MYLOG("%f\t%f\n", patt_trans[0][3] / patt_trans[2][3], patt_trans[1][3] / patt_trans[2][3]);
-						//printf("%f\t%f\n", patt_trans[0][3] / patt_trans[2][3], patt_trans[1][3] / patt_trans[2][3]);
+					//	printf("%f\t%f\n", patt_trans[0][3] / patt_trans[2][3], patt_trans[1][3]/patt_trans[2][3]);
 
-						static double	xlu = -0.253599,	ylu = -0.299156,
-										xld = -0.251457,	yld = 0.275205,
-										xru = 0.264789,	yru = -0.300741,
-										xrd = 0.262516,	yrd = 0.272299;
+						static double	xlu = -0.4,	ylu = -0.27,
+										xld = -0.4,	yld = 0.3,
+										xru = 0.44,	yru = -0.27,
+										xrd = 0.44,	yrd = 0.3;
 						
 						static double	yu,yd;
 						static double	x0, y0;
@@ -578,13 +617,14 @@ static void mainLoop(void)
 						static double accx = 0, xnum = 0, accy = 0, accz = 0;
 						x0 = patt_trans[0][3] / patt_trans[2][3];
 						y0 = patt_trans[1][3] / patt_trans[2][3];
-						/*
+						
 						accx += x0;
 						accy += y0;
 						accz += patt_trans[2][3];
 						xnum += 1;
-						printf("zmean = %lf\n", accz/xnum);
-						*/
+					//	printf("zmean = %lf\n", accz/xnum);
+					//	printf("current z = %lf\n", patt_trans[2][3]);
+						
 						
 
 						//printf("ymean = %lf\n", accy / xnum);
@@ -595,18 +635,19 @@ static void mainLoop(void)
 						//x = (int)((yrd - y0) / (yrd - yru)*xd + (y0 - yru) / (yrd - yru)*xu + 0.5);
 
 						//out of the plane
+						static double xlen = 16.0, ylen = 8.0;
 
-						if (x0 < xlu - (xru - xlu) / 19.0 / 2.0)	continue;
-						if (patt_trans[2][3] <= 2600.0 || patt_trans[2][3] >= 2900.0) continue;
-						x = (int)((x0 - (xlu)) / ((xru) - (xlu)) * 19 + 0.5 );
-						len = x / 19.0*lenRight + (19.0 - x) / 19.0*lenLeft;
+						if (x0 < xlu - (xru - xlu) / (xlen -1) / 2.0)	continue;
+						if (patt_trans[2][3] <= 1200.0 || patt_trans[2][3] >= 1700.0) continue;
+						x = (int)((x0 - (xlu)) / ((xru) - (xlu)) * (xlen - 1) + 0.5 );
+					//	len = x / (xlen - 1)*lenRight + ((xlen - 1) - x) / (xlen - 1)*lenLeft;
 						x = x + 6;
-						yu = yrd - len;
+					//	yu = yrd - len;
 						//MYLOG("yu = %lf\n",yu);
 						MYLOG("!!!!!! =  %lf\n", (x0 - (xlu)) / ((xru) - (xlu)));
 						//printf("x =  %d\n", x);
 
-						y = (int)((y0 - yu) / len*15.0 + 0.5);
+						y = (int)((y0 - yru) / (yrd - yru)*(ylen - 1) + 0.5);
 
 						/*
 						if( patt_trans[0][3] > 0 ) x = (int)(patt_trans[0][3] / patt_trans[2][3] / 0.03) + 1;
@@ -877,4 +918,55 @@ static void draw( ARdouble trans[3][4] )
     glDisable( GL_LIGHTING );
 
     glDisable( GL_DEPTH_TEST );
+}
+
+static void drawRed(ARdouble trans[3][4])
+{
+	ARdouble  gl_para[16];
+	GLfloat   mat_diffuse[] = { 1.0f, 0.0f, 0.0f, 0.0f };
+	GLfloat   mat_flash[] = { 1.0f, 1.0f, 1.0f, 0.0f };
+	GLfloat   mat_flash_shiny[] = { 50.0f };
+	GLfloat   light_position[] = { 100.0f, -200.0f, 200.0f, 0.0f };
+	GLfloat   light_ambi[] = { 0.1f, 0.1f, 0.1f, 0.0f };
+	GLfloat   light_color[] = { 1.0f, 1.0f, 1.0f, 0.0f };
+
+	argDrawMode3D(vp);
+	glClearDepth(1.0);
+	glClear(GL_DEPTH_BUFFER_BIT);
+	glEnable(GL_DEPTH_TEST);
+	glDepthFunc(GL_LEQUAL);
+
+	/* load the camera transformation matrix */
+	argConvGlpara(trans, gl_para);
+	glMatrixMode(GL_MODELVIEW);
+#ifdef ARDOUBLE_IS_FLOAT
+	glLoadMatrixf(gl_para);
+#else
+	glLoadMatrixd(gl_para);
+#endif
+
+	glEnable(GL_LIGHTING);
+	glEnable(GL_LIGHT0);
+	glLightModeli(GL_LIGHT_MODEL_LOCAL_VIEWER, 1);
+	glLightfv(GL_LIGHT0, GL_POSITION, light_position);
+	glLightfv(GL_LIGHT0, GL_AMBIENT, light_ambi);
+	glLightfv(GL_LIGHT0, GL_DIFFUSE, light_color);
+	glLightfv(GL_LIGHT0, GL_SPECULAR, light_color);
+	glMaterialfv(GL_FRONT, GL_SPECULAR, mat_flash);
+	glMaterialfv(GL_FRONT, GL_SHININESS, mat_flash_shiny);
+	glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_diffuse);
+	glMaterialfv(GL_FRONT, GL_AMBIENT, mat_diffuse);
+
+#if 1
+	glTranslatef(0.0f, 0.0f, 40.0f);
+	glutSolidCube(80.0);
+#else
+	glTranslatef(0.0f, 0.0f, 20.0f);
+	glRotatef(90.0f, 1.0f, 0.0f, 0.0f);
+	glutSolidTeapot(40.0);
+#endif
+	glDisable(GL_LIGHT0);
+	glDisable(GL_LIGHTING);
+
+	glDisable(GL_DEPTH_TEST);
 }
