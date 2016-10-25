@@ -188,6 +188,17 @@ static void testLoop(void)
 	}
 	doc.AddMember("cars", cars, allocator);
 
+	//car dir
+	rapidjson::Value carDir(rapidjson::kObjectType);
+	int TDir = rand() * 1.0f * 2 / RAND_MAX; // 0 1
+	if (TDir == 2) TDir--;
+	int XDir = rand() * 1.0f * 3 / RAND_MAX; // 0 1 2
+	if (XDir == 3) XDir--;
+
+	carDir.AddMember("tcrossDir", TDir, allocator);
+	carDir.AddMember("xcrossDir", XDir, allocator);
+	doc.AddMember("carDir", carDir, allocator);
+
 	//print json
 	stringstream ss;
 	ss.str("");

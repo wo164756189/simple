@@ -144,6 +144,7 @@ ProcessingStatus status = AR_INIT;
 //client socket
 Server server;
 bool rotateFlag = false;
+bool carFlag = false;
 
 static void   init(int argc, char *argv[]);
 static void   keyFunc( unsigned char key, int x, int y );
@@ -199,8 +200,8 @@ int main(int argc, char *argv[])
 	carServer.SetAddr("127.0.0.1", "56025");
 	carGenerator.InitCrosses();
 	
-	preMs = duration_cast<milliseconds>(system_clock::now().time_since_epoch());
-	preMsFrame = preMs;
+	/*preMs = duration_cast<milliseconds>(system_clock::now().time_since_epoch());
+	preMsFrame = preMs;*/
 
 	while (true)
 		testLoop();
@@ -308,6 +309,7 @@ void transferToJson(rapidjson::Document& doc,int markernum,Marker* markers)
 	doc.AddMember("blockSize", blockSize, allocator);
 
 	doc.AddMember("rotate", rotateFlag, allocator);
+	doc.AddMember("carFlag", carFlag, allocator);
 
 	rapidjson::Value mkArray(rapidjson::kArrayType);
 	for (int i = 0; i < markernum; i++)
