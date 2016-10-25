@@ -75,12 +75,12 @@ public :
 		Cross cross1;
 		cross1.position[0] = 3+6;
 		cross1.position[1] = 3;
-		cross1.type = "xcross_greenlight";
+		cross1.type = "lcross_greenlight";
 		cross1.orientation = 1;
 
 		Cross cross2;
 		cross2.position[0] = 5+6;
-		cross2.position[1] = 4;
+		cross2.position[1] = 3;
 		cross2.type = "xcross_greenlight";
 		cross2.orientation = 1;
 
@@ -88,31 +88,49 @@ public :
 		cross3.position[0] = 5+6;
 		cross3.position[1] = 5;
 		cross3.type = "xcross_greenlight";
-		cross3.orientation = 1;
+		cross3.orientation = 4;
 
 		Cross cross4;
 		cross4.position[0] = 9+6;
 		cross4.position[1] = 5;
 		cross4.type = "xcross_greenlight";
-		cross4.orientation = 1;
+		cross4.orientation = 2;
+
+		Cross cross8;
+		cross8.position[0] = 9 + 6;
+		cross8.position[1] = 3;
+		cross8.type = "xcross_greenlight";
+		cross8.orientation = 3;
+
+		Cross cross9;
+		cross9.position[0] = 18;
+		cross9.position[1] = 3;
+		cross9.type = "xcross_greenlight";
+		cross9.orientation = 2;
+
+		Cross cross10;
+		cross10.position[0] = 18;
+		cross10.position[1] = 5;
+		cross10.type = "xcross_greenlight";
+		cross10.orientation = 1;
 
 		Cross cross5;
 		cross5.position[0] = 9+6;
 		cross5.position[1] = 1;
 		cross5.type = "xcross_greenlight";
-		cross5.orientation = 1;
+		cross5.orientation = 2;
 
 		Cross cross6;
 		cross6.position[0] = 12+6;
 		cross6.position[1] = 1;
-		cross6.type = "xcross_greenlight";
+		cross6.type = "tcross_greenlight";
 		cross6.orientation = 1;
 
 		Cross cross7;
 		cross7.position[0] = 12+6;
 		cross7.position[1] = 6;
 		cross7.type = "xcross_greenlight";
-		cross7.orientation = 1;
+		cross7.orientation = 4;
 
 		crosses.push_back(cross);
 		crosses.push_back(cross1);
@@ -122,6 +140,9 @@ public :
 		crosses.push_back(cross5);
 		crosses.push_back(cross6);
 		crosses.push_back(cross7);
+		crosses.push_back(cross8);
+		crosses.push_back(cross9);
+		crosses.push_back(cross10);
 	}
 
 	void GenerateCars(rapidjson::Value& carArray, rapidjson::Document::AllocatorType& allocator)
