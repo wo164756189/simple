@@ -42,34 +42,86 @@ public :
 
 	void InitCrosses()//call only detection not available
 	{
+		//Cross cross;
+		//cross.position[0] = 19;
+		//cross.position[1] = 2;
+		//cross.type = "xcross_greenlight";
+		//cross.orientation = 1;
+
+		//Cross cross1;
+		//cross1.position[0] = 6;
+		//cross1.position[1] = 2;
+		//cross1.type = "xcross_greenlight";
+		//cross1.orientation = 3;
+
+		//Cross cross2;
+		//cross2.position[0] = 19;
+		//cross2.position[1] = 12;
+		//cross2.type = "xcross_greenlight";
+		//cross2.orientation = 1;
+
+		//Cross cross3;
+		//cross3.position[0] = 6;
+		//cross3.position[1] = 12;
+		//cross3.type = "xcross_greenlight";
+		//cross3.orientation = 2;
+
 		Cross cross;
-		cross.position[0] = 19;
-		cross.position[1] = 2;
+		cross.position[0] = 3+6;
+		cross.position[1] = 1;
 		cross.type = "xcross_greenlight";
 		cross.orientation = 1;
 
 		Cross cross1;
-		cross1.position[0] = 6;
-		cross1.position[1] = 2;
+		cross1.position[0] = 3+6;
+		cross1.position[1] = 3;
 		cross1.type = "xcross_greenlight";
-		cross1.orientation = 3;
+		cross1.orientation = 1;
 
 		Cross cross2;
-		cross2.position[0] = 19;
-		cross2.position[1] = 12;
+		cross2.position[0] = 5+6;
+		cross2.position[1] = 4;
 		cross2.type = "xcross_greenlight";
 		cross2.orientation = 1;
 
 		Cross cross3;
-		cross3.position[0] = 6;
-		cross3.position[1] = 12;
+		cross3.position[0] = 5+6;
+		cross3.position[1] = 5;
 		cross3.type = "xcross_greenlight";
-		cross3.orientation = 2;
+		cross3.orientation = 1;
+
+		Cross cross4;
+		cross4.position[0] = 9+6;
+		cross4.position[1] = 5;
+		cross4.type = "xcross_greenlight";
+		cross4.orientation = 1;
+
+		Cross cross5;
+		cross5.position[0] = 9+6;
+		cross5.position[1] = 1;
+		cross5.type = "xcross_greenlight";
+		cross5.orientation = 1;
+
+		Cross cross6;
+		cross6.position[0] = 12+6;
+		cross6.position[1] = 1;
+		cross6.type = "xcross_greenlight";
+		cross6.orientation = 1;
+
+		Cross cross7;
+		cross7.position[0] = 12+6;
+		cross7.position[1] = 6;
+		cross7.type = "xcross_greenlight";
+		cross7.orientation = 1;
 
 		crosses.push_back(cross);
 		crosses.push_back(cross1);
 		crosses.push_back(cross2);
 		crosses.push_back(cross3);
+		crosses.push_back(cross4);
+		crosses.push_back(cross5);
+		crosses.push_back(cross6);
+		crosses.push_back(cross7);
 	}
 
 	void GenerateCars(rapidjson::Value& carArray, rapidjson::Document::AllocatorType& allocator)
@@ -173,15 +225,14 @@ static void testLoop(void)
 		mkArray.PushBack(mk, allocator);
 	}
 
-	//station
+	//station 
 	rapidjson::Value stationMK(rapidjson::kObjectType);
 	rapidjson::Value span(rapidjson::kObjectType);
 	rapidjson::Value spanX(1);
 	rapidjson::Value spanY(1);
-	rapidjson::Value x(4);
-	rapidjson::Value y(3);
+	rapidjson::Value x(7+6);
+	rapidjson::Value y(5);
 	rapidjson::Value type((int)(22));
-	rapidjson::Value orientation(1);
 
 	stationMK.AddMember("x", x, allocator);
 	stationMK.AddMember("y", y, allocator);
@@ -195,6 +246,29 @@ static void testLoop(void)
 	span.AddMember("y", spanY, allocator);
 	stationMK.AddMember("span", span, allocator);
 	mkArray.PushBack(stationMK, allocator);
+
+
+	//station 1
+	rapidjson::Value stationMK1(rapidjson::kObjectType);
+	rapidjson::Value span1(rapidjson::kObjectType);
+	rapidjson::Value spanX1(1);
+	rapidjson::Value spanY1(1);
+	rapidjson::Value x1(12+6);
+	rapidjson::Value y1(4);
+	rapidjson::Value type1((int)(22));
+
+	stationMK1.AddMember("x", x1, allocator);
+	stationMK1.AddMember("y", y1, allocator);
+	stationMK1.AddMember("type", "BLOCK", allocator);
+	rapidjson::Value s1;
+	string str1("station");
+	s1.SetString(rapidjson::StringRef(str.c_str()));
+	stationMK1.AddMember("id", s1, allocator);
+	stationMK1.AddMember("orientation", 2, allocator);
+	span1.AddMember("x", spanX1, allocator);
+	span1.AddMember("y", spanY1, allocator);
+	stationMK1.AddMember("span", span1, allocator);
+	mkArray.PushBack(stationMK1, allocator);
 
 	//add array
 	doc.AddMember("entry", mkArray, allocator);
