@@ -136,9 +136,6 @@ Server server;
 bool rotateFlag = false;
 bool roadPinFlag = false;
 bool carGenFlag = false;
-//car
-CarGenerator carGenerator;
-milliseconds preMs, curMs;
 
 static void   init(int argc, char *argv[]);
 static void   keyFunc(unsigned char key, int x, int y);
@@ -213,6 +210,12 @@ int main(int argc, char *argv[])
 	// socket
 	/*client.InitSocket();
 	client.Connect("127.0.0.1", "56025");*/
+	/*carServer.SetAddr("127.0.0.1", "56025");
+
+	carGenerator.InitCrosses();
+	while (true)
+		testLoop();*/
+
 
 	//server socket
 	server.SetAddr("192.168.1.2", "56025");
@@ -229,6 +232,7 @@ int main(int argc, char *argv[])
 
 	//client.Close();
 	server.Close();
+
 	return (0);
 }
 
@@ -612,7 +616,7 @@ static void mainLoop(void)
 			// ARLOG("ID=%d, CF = %f\n", markerInfo[j].id, markerInfo[j].cf);
 			if (patt_ids[i] == markerInfo[j].id) {
 				//  if( k == -1 ) {
-				if (markerInfo[j].cf >= 0.6) {
+				if (markerInfo[j].cf >= 0.73) {
 					num++;
 					//           MYLOG("line = %d\n",arHandle->markerInfo2[j].coord_num/4);
 					err = arGetTransMatSquare(ar3DHandle, &(markerInfo[j]), patt_width, patt_trans);
