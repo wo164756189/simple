@@ -203,28 +203,34 @@ void LoadPatt()
 
 int main(int argc, char *argv[])
 {
-	glutInit(&argc, argv);
-	init(argc, argv);
+	/*glutInit(&argc, argv);
+	init(argc, argv);*/
 
 	// socket
 	/*client.InitSocket();
 	client.Connect("127.0.0.1", "56025");*/
+	carServer.SetAddr("127.0.0.1", "56025");
+
+	carGenerator.InitCrosses();
+	while (true)
+		testLoop();
+
 
 	//server socket
-	server.SetAddr("192.168.1.2", "56025");
+	//server.SetAddr("192.168.1.2", "56025");
 
-	preMs = duration_cast<milliseconds>(system_clock::now().time_since_epoch());
-	argSetDispFunc(mainLoop, 1);
-	argSetKeyFunc(keyFunc);
-	//arSetLabelingThreshMode(arHandle,AR_LABELING_THRESH_MODE_AUTO_ADAPTIVE);
-	//arSetLabelingThresh(arHandle,85);
-	count = 0;
-	fps[0] = '\0';
-	arUtilTimerReset();
-	argMainLoop();
+	//preMs = duration_cast<milliseconds>(system_clock::now().time_since_epoch());
+	//argSetDispFunc(mainLoop, 1);
+	//argSetKeyFunc(keyFunc);
+	////arSetLabelingThreshMode(arHandle,AR_LABELING_THRESH_MODE_AUTO_ADAPTIVE);
+	////arSetLabelingThresh(arHandle,85);
+	//count = 0;
+	//fps[0] = '\0';
+	//arUtilTimerReset();
+	//argMainLoop();
 
-	//client.Close();
-	server.Close();
+	////client.Close();
+	//server.Close();
 	return (0);
 }
 
